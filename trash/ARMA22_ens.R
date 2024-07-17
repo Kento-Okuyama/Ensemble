@@ -1,0 +1,358 @@
+##########################################
+# Data Generation and Stan Model Setup   #
+##########################################
+
+# Load required libraries
+library(forecast)
+library(rstan)
+library(loo)
+
+# Define parameters for data generation
+n_people <- 10
+n_burnins <- 25
+n_timepoints <- 50
+
+# Initialize list to store time series data for each person
+time_series_list <- list()
+
+# Generate ARMA(2,2) time series data for each person
+set.seed(123)  # Set random seed for reproducibility
+for (i in 1:n_people) {
+  ar <- c(0.5, -0.3)  # Autoregressive coefficients
+  ma <- c(0.4, -0.2)  # Moving average coefficients
+  mu <- 0             # Mean of the process
+  sigma <- 1          # Standard deviation of the process
+  e <- rnorm(n_burnins + n_timepoints, mean = mu, sd = sigma) # White noise
+  data <- numeric(n_burnins + n_timepoints) # Initialize data vector
+  data[1:2] <- e[1:2]                        # Set initial values
+  
+  # Generate ARMA(2,2) process
+  for (t in 3:(n_burnins + n_timepoints)) {
+    data[t] <- mu + ar[1] * (data[t - 1] - mu) + 
+      ar[2] * (data[t - 2] - mu) + 
+      e[t] + ma[1] * e[t - 1] + ma[2] * e[t - 2] 
+  }
+  
+  # Store time series data after discarding burn-in period
+  time_series_list[[i]] <- data[(n_burnins + 1):(n_burnins + n_timepoints)]
+}
+
+# Visualize the generated time series data
+plot(1:n_timepoints, type = 'n', 
+     xlim = c(1, n_timepoints), ylim = range(unlist(time_series_list)), 
+     main = "ARMA(2,2) Time Series for All Individuals", 
+     xlab = "Time", ylab = "Value")
+colors <- rainbow(n_people)  # Create a color palette for each individual
+for (i in 1:n_people) {
+  lines(1:n_timepoints, time_series_list[[i]], col = colors[i], lwd = 1)
+}
+
+# Prepare the data for Stan
+data_list <- list(N_people = n_people, N_timepoints = n_timepoints, y = lapply(time_series_list, function(x) x[1:n_timepoints]))
+
+# Set rstan options
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+# Define the Stan models
+stan_model_AR1 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;
+  int<lower=1> N_timepoints;
+  vector[N_timepoints] y[N_people];
+}
+parameters {
+  real phi1;
+  real<lower=0> sigma;
+  real mu;
+}
+model {
+  phi1 ~ normal(0, 1);
+  sigma ~ cauchy(0, 2.5);
+  mu ~ normal(0, 10);
+  for (j in 1:N_people) {
+    for (n in 2:N_timepoints) {
+      y[j][n] ~ normal(mu + phi1 * (y[j][n-1] - mu), sigma);
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  vector[N_timepoints] y_hat[N_people];
+  for (j in 1:N_people) {
+    log_lik[j][1] = 0;
+    y_hat[j][1] = y[j][1];
+    for (n in 2:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu + phi1 * (y[j][n-1] - mu), sigma);
+      y_hat[j][n] = normal_rng(mu + phi1 * (y[j][n-1] - mu), sigma);
+    }
+  }
+}
+")
+
+stan_model_AR2 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;
+  int<lower=1> N_timepoints;
+  vector[N_timepoints] y[N_people];
+}
+parameters {
+  real phi1;
+  real phi2;
+  real<lower=0> sigma;
+  real mu;
+}
+model {
+  phi1 ~ normal(0, 1);
+  phi2 ~ normal(0, 1);
+  sigma ~ cauchy(0, 2.5);
+  mu ~ normal(0, 10);
+  for (j in 1:N_people) {
+    for (n in 3:N_timepoints) {
+      y[j][n] ~ normal(mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu), sigma);
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  vector[N_timepoints] y_hat[N_people];
+  for (j in 1:N_people) {
+    log_lik[j][1] = 0;
+    log_lik[j][2] = 0;
+    y_hat[j][1] = y[j][1];
+    y_hat[j][2] = y[j][2];
+    for (n in 3:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu), sigma);
+      y_hat[j][n] = normal_rng(mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu), sigma);
+    }
+  }
+}
+")
+
+stan_model_AR3 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;
+  int<lower=1> N_timepoints;
+  vector[N_timepoints] y[N_people];
+}
+parameters {
+  real phi1;
+  real phi2;
+  real phi3;
+  real<lower=0> sigma;
+  real mu;
+}
+model {
+  phi1 ~ normal(0, 1);
+  phi2 ~ normal(0, 1);
+  phi3 ~ normal(0, 1);
+  sigma ~ cauchy(0, 2.5);
+  mu ~ normal(0, 10);
+  for (j in 1:N_people) {
+    for (n in 4:N_timepoints) {
+      y[j][n] ~ normal(mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu) + phi3 * (y[j][n-3] - mu), sigma);
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  vector[N_timepoints] y_hat[N_people];
+  for (j in 1:N_people) {
+    log_lik[j][1] = 0;
+    log_lik[j][2] = 0;
+    log_lik[j][3] = 0;
+    y_hat[j][1] = y[j][1];
+    y_hat[j][2] = y[j][2];
+    y_hat[j][3] = y[j][3];
+    for (n in 4:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu) + phi3 * (y[j][n-3] - mu), sigma);
+      y_hat[j][n] = normal_rng(mu + phi1 * (y[j][n-1] - mu) + phi2 * (y[j][n-2] - mu) + phi3 * (y[j][n-3] - mu), sigma);
+    }
+  }
+}
+")
+
+###############################################
+# Fitting the Stan Models and Calculating ICs #
+###############################################
+
+# Fit the Stan models
+fit_combined_AR1 <- sampling(stan_model_AR1, data = data_list, iter = 2000, chains = 4)
+fit_combined_AR2 <- sampling(stan_model_AR2, data = data_list, iter = 2000, chains = 4)
+fit_combined_AR3 <- sampling(stan_model_AR3, data = data_list, iter = 2000, chains = 4)
+
+# Extract posterior means of the parameters
+posterior_mean_AR1 <- summary(fit_combined_AR1)$summary
+posterior_mean_AR2 <- summary(fit_combined_AR2)$summary
+posterior_mean_AR3 <- summary(fit_combined_AR3)$summary
+
+# Extract log-likelihoods
+log_lik_AR1 <- extract_log_lik(fit_combined_AR1, merge_chains = TRUE)
+log_lik_AR2 <- extract_log_lik(fit_combined_AR2, merge_chains = TRUE)
+log_lik_AR3 <- extract_log_lik(fit_combined_AR3, merge_chains = TRUE)
+
+# Reshape log-likelihood matrix to group by individual and time point
+reshape_log_lik <- function(log_lik, n_people, n_timepoints) {
+  n_samples <- nrow(log_lik)
+  reshaped_log_lik <- array(0, dim = c(n_samples, n_people, n_timepoints))
+  for (i in 1:n_people) {
+    reshaped_log_lik[, i, ] <- log_lik[, ((i-1) * n_timepoints + 1):(i * n_timepoints)]
+  }
+  return(reshaped_log_lik)
+}
+
+log_lik_AR1_reshaped <- reshape_log_lik(log_lik_AR1, n_people, n_timepoints)
+log_lik_AR2_reshaped <- reshape_log_lik(log_lik_AR2, n_people, n_timepoints)
+log_lik_AR3_reshaped <- reshape_log_lik(log_lik_AR3, n_people, n_timepoints)
+
+# Calculate total log-likelihood for each person and chain combination
+total_log_lik <- function(log_lik) {
+  apply(log_lik, c(1, 2), sum)  # Sum log-likelihoods across time points
+}
+
+log_lik_AR1_total <- total_log_lik(log_lik_AR1_reshaped)
+log_lik_AR2_total <- total_log_lik(log_lik_AR2_reshaped)
+log_lik_AR3_total <- total_log_lik(log_lik_AR3_reshaped)
+
+# Calculate WAIC and LOOIC using total log-likelihood
+loo_AR1_total <- loo(log_lik_AR1_total)
+loo_AR2_total <- loo(log_lik_AR2_total)
+loo_AR3_total <- loo(log_lik_AR3_total)
+
+# Extract posterior samples of y_hat for each model
+y_hat_AR1 <- extract(fit_combined_AR1, pars = "y_hat")$y_hat
+y_hat_AR2 <- extract(fit_combined_AR2, pars = "y_hat")$y_hat
+y_hat_AR3 <- extract(fit_combined_AR3, pars = "y_hat")$y_hat
+
+# Calculate MSE for each model (corrected)
+calculate_mse <- function(y_hat, y_true, model_order) {
+  start_point <- model_order + 1  # match the start_point with the lags
+  mse_values <- sapply(1:dim(y_hat)[1], function(s) {  # Iterate over MCMC samples
+    mse_per_person <- sapply(1:length(y_true), function(i) mean((y_hat[s, i, ] - y_true[[i]])^2))
+    return(mean(mse_per_person)) # Average MSE across individuals for this sample
+  })
+  return(mean(mse_values)) # Average MSE across all MCMC samples
+}
+
+mse_AR1 <- calculate_mse(y_hat_AR1, data_list$y, model_order = 1)
+mse_AR2 <- calculate_mse(y_hat_AR2, data_list$y, model_order = 2)
+mse_AR3 <- calculate_mse(y_hat_AR3, data_list$y, model_order = 3)
+
+# Calculate total log-likelihood for each chain
+total_log_lik2 <- function(log_lik) {
+  apply(log_lik, 1, sum)  # Sum all log-likelihood values
+}
+
+log_lik_AR1_total2 <- mean(total_log_lik2(log_lik_AR1))
+log_lik_AR2_total2 <- mean(total_log_lik2(log_lik_AR2))
+log_lik_AR3_total2 <- mean(total_log_lik2(log_lik_AR3))
+
+# Create a data frame to store the results
+ICs_df <- data.frame(
+  Model = c("AR(1)", "AR(2)", "AR(3)"),
+  LOOIC = c(loo_AR1_total$estimates["looic", "Estimate"], loo_AR2_total$estimates["looic", "Estimate"], loo_AR3_total$estimates["looic", "Estimate"]),
+  p_eff_LOOIC = c(loo_AR1_total$estimates["p_loo", "Estimate"], loo_AR2_total$estimates["p_loo", "Estimate"], loo_AR3_total$estimates["p_loo", "Estimate"]),
+  MSE = c(mse_AR1, mse_AR2, mse_AR3),
+  LL = c(log_lik_AR1_total2, log_lik_AR2_total2, log_lik_AR3_total2)
+)
+
+# Calculate weights based on LOOIC
+inverse_looic <- 1 / ICs_df$LOOIC
+weights_looic <- inverse_looic / sum(inverse_looic)
+
+# Calculate weights based on MSE (using inverse because lower MSE is better)
+inverse_mse <- 1 / ICs_df$MSE
+weights_mse <- inverse_mse / sum(inverse_mse)
+
+# Calculate weights based on LL (directly because higher LL is better)
+weights_ll <- ICs_df$LL / sum(ICs_df$LL)
+
+# Add weights to the data frame
+ICs_df$Weight_LOOIC <- weights_looic
+ICs_df$Weight_MSE <- weights_mse
+ICs_df$Weight_LL <- weights_ll
+
+# Function to calculate ensemble predictions
+calculate_ensemble <- function(y_hat_list, weights) {
+  y_hat_ensemble <- array(0, dim = dim(y_hat_list[[1]]))
+  for (i in 1:length(weights)) {
+    y_hat_ensemble <- y_hat_ensemble + weights[i] * y_hat_list[[i]]
+  }
+  return(y_hat_ensemble)
+}
+
+# Calculate ensemble predictions for each set of weights
+y_hat_list <- list(y_hat_AR1, y_hat_AR2, y_hat_AR3)
+y_hat_ensemble_looic <- calculate_ensemble(y_hat_list, weights_looic)
+y_hat_ensemble_mse <- calculate_ensemble(y_hat_list, weights_mse)
+y_hat_ensemble_ll <- calculate_ensemble(y_hat_list, weights_ll)
+
+# Calculate MSE for each ensemble
+mse_ensemble_looic <- calculate_mse(y_hat_ensemble_looic, data_list$y, model_order = 3)
+mse_ensemble_mse <- calculate_mse(y_hat_ensemble_mse, data_list$y, model_order = 3)
+mse_ensemble_ll <- calculate_mse(y_hat_ensemble_ll, data_list$y, model_order = 3)
+
+# Add ensemble MSEs to the data frame
+ensemble_mse_df <- data.frame(
+  Ensemble = c("LOOIC", "MSE", "LL"),
+  MSE = c(mse_ensemble_looic, mse_ensemble_mse, mse_ensemble_ll)
+)
+
+# Print the results in the desired format
+print(ICs_df)
+print(ensemble_mse_df)
+
+# Function to calculate mean squared error (MSE) at each time point starting from the 3rd data point
+calculate_mse_time <- function(y_hat, y_true, start_point = 4) {
+  mse_values <- sapply(start_point:dim(y_hat)[2], function(t) {  # Iterate over time points starting from 'start_point'
+    mse_per_person <- sapply(1:length(y_true), function(i) (y_hat[i, t] - y_true[[i]][t])^2)
+    return(mean(mse_per_person)) # Average MSE across individuals for this time point
+  })
+  return(mse_values) # MSE for each time point
+}
+
+# Calculate MSE for each model at each time point starting from the 3rd data point
+mse_time_AR1 <- calculate_mse_time(apply(y_hat_AR1, c(2,3), mean), data_list$y)
+mse_time_AR2 <- calculate_mse_time(apply(y_hat_AR2, c(2,3), mean), data_list$y)
+mse_time_AR3 <- calculate_mse_time(apply(y_hat_AR3, c(2,3), mean), data_list$y)
+
+# Calculate MSE for each ensemble at each time point starting from the 3rd data point
+mse_time_ensemble_looic <- calculate_mse_time(apply(y_hat_ensemble_looic, c(2,3), mean), data_list$y)
+
+# Define x-axis for the plot (starting from the 3rd data point)
+x_axis <- 4:n_timepoints
+
+# Prepare data for plotting
+mse_time_data <- data.frame(
+  Time = rep(x_axis, 4),
+  MSE = c(mse_time_AR1, mse_time_AR2, mse_time_AR3, mse_time_ensemble_looic),
+  Model = factor(rep(c("AR(1)", "AR(2)", "AR(3)", "Ensemble (LOOIC)"), each = length(x_axis)))
+)
+
+# Plot MSE over time for each model and ensemble with y-axis on log scale
+ggplot(mse_time_data, aes(x = Time, y = MSE, color = Model, group = Model)) +
+  geom_line(size = 1.2) +
+  scale_y_log10() +
+  labs(title = "MSE over Time (Starting from 3rd Data Point)", x = "Time", y = "Log(MSE)") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "top",
+    legend.title = element_blank()
+  ) +
+  scale_color_manual(values = c("AR(1)" = "gray", "AR(2)" = "gray", "AR(3)" = "gray", "Ensemble (LOOIC)" = "purple"))
+
+# Prepare data for density plot
+error_data <- data.frame(
+  Error = c(mse_time_AR1, mse_time_AR2, mse_time_AR3, mse_time_ensemble_looic),
+  Model = factor(rep(c("AR(1)", "AR(2)", "AR(3)", "Ensemble (LOOIC)"), each = length(mse_time_AR1)))
+)
+
+# Plot error distribution as density plot
+ggplot(error_data, aes(x = Error, color = Model, fill = Model)) +
+  geom_density(alpha = 0.4) +
+  scale_x_log10() +
+  labs(title = "Error Distribution by Model", x = "Log(Error)", y = "Density") +
+  theme_minimal() +
+  theme(legend.position = "top")
+

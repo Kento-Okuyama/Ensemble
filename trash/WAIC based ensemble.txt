@@ -1,0 +1,17 @@
+WAIC based ensemble
+75 x 125
+
+interaction
+on classs Questions
+
+learning by exploration
+
+
+solving exercise and post questions on ilias
+
+
+
+ema - ild
+mlm 600 obs 5-10 obs a day 
+2 melm
+ema nested in day nested in ppl - post suicidal attempt

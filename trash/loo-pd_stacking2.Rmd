@@ -1,0 +1,221 @@
+---
+title: "loo-pd_stacking2"
+output: html_document
+date: "2024-05-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r AR1 average instruction}
+
+# 疑似コード
+
+# 1. 75人分のAR(1)時系列データを生成します（既に完了していると仮定）
+
+# 2. 全データに共通のパラメータを持つAR(1)モデルを設定
+#    （実際には、このステップを直接実装するRの関数は限られています）
+
+# 3. モデルをデータにフィットさせる
+#    フィットさせる際には、全個人のデータを考慮し、
+#    全体に一貫したパラメータセットで最適化を行います。
+
+# 4. モデルの適合度を評価
+#    この適合度は、例えば、尤度比テストや情報量基準（AIC、BICなど）を用いて評価できます。
+```
+
+```{r AR1 average simulation}
+# 必要なパッケージのロード
+library(forecast)
+
+# 人数と時系列の長さの定義
+n_people <- 10
+n_timepoints <- 50
+
+# 75人分のAR(1)時系列データを格納するリストを初期化
+time_series_list <- list()
+
+# 各個人に対して独立したAR(1)プロセスでデータを生成
+set.seed(123)  # 再現性のためのシード設定
+for(i in 1:n_people) {
+  # AR(1) パラメータを設定（例：phi=0.5、mu=0、sigma=1）
+  # ここで、phiは自己回帰係数、muは平均、sigmaはノイズの標準偏差です。
+  phi <- 0.5
+  mu <- 0
+  sigma <- 1
+  
+  # AR(1)プロセスに基づいたデータ生成
+  e <- rnorm(n_timepoints, mean = mu, sd = sigma)  # ノイズの生成
+  data <- numeric(n_timepoints)
+  data[1] <- e[1]  # 初期値
+  
+  for(t in 2:n_timepoints) {
+    data[t] <- mu + phi * (data[t-1] - mu) + e[t]
+  }
+  
+  # 生成した時系列データをリストに追加
+  time_series_list[[i]] <- data
+}
+
+# 75人全員分の時系列データをプロット
+plot(1:n_timepoints, rep(NA, n_timepoints), type = 'n', xlim = c(1, n_timepoints), ylim = range(unlist(time_series_list)), main = "AR(1) Time Series for All Individuals", xlab = "Time", ylab = "Value")
+
+# 75色でプロットするための色を生成
+colors <- rainbow(n_people)
+
+for(i in 1:n_people) {
+  lines(1:n_timepoints, time_series_list[[i]], col = colors[i], lwd = 1)
+}
+```
+
+```{r Setup}
+# パッケージのロード
+library(rstan)
+library(loo)
+
+# データの準備
+data_list <- list(N_people = n_people, N_timepoints = n_timepoints, y = time_series_list)
+
+# rstanのオプション設定
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+```{r AR0}
+# Stanモデルの定義 (AR0モデルへの変更)
+stan_model_AR0 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;         // 人数
+  int<lower=1> N_timepoints;     // 時系列の長さ
+  vector[N_timepoints] y[N_people]; // 各個人の観測データ
+}
+parameters {
+  real mu;        // 平均
+  real<lower=0> sigma; // ノイズの標準偏差
+}
+model {
+  mu ~ normal(0, 10); // muの事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  for (j in 1:N_people) {
+    for (n in 1:N_timepoints) {
+      y[j][n] ~ normal(mu, sigma); // AR(0)モデル
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  for (j in 1:N_people) {
+    for (n in 1:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu, sigma);
+    }
+  }
+}
+")
+
+```
+
+```{r AR1}
+# Stanモデルの定義 (AR(1)モデル)
+stan_model_AR1 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;         // 人数
+  int<lower=1> N_timepoints;     // 時系列の長さ
+  vector[N_timepoints] y[N_people]; // 各個人の観測データ
+}
+parameters {
+  real phi;       // 自己回帰係数
+  real<lower=0> sigma; // ノイズの標準偏差
+  real mu;        // 平均
+}
+model {
+  phi ~ normal(0, 1); // phiの事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  mu ~ normal(0, 10); // muの事前分布
+  for (j in 1:N_people) {
+    for (n in 2:N_timepoints) {
+      y[j][n] ~ normal(mu + phi * (y[j][n-1] - mu), sigma); // AR(1)モデル
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  for (j in 1:N_people) {
+    log_lik[j][1] = 0; // 最初の時点の対数尤度は計算しないため、0とする
+    for (n in 2:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu + phi * (y[j][n-1] - mu), sigma);
+    }
+  }
+}
+")
+
+```
+
+```{r AR2}
+# Stanモデルの定義 (AR(2)モデル)
+stan_model_AR2 <- stan_model(model_code = "
+data {
+  int<lower=1> N_people;         // 人数
+  int<lower=1> N_timepoints;     // 時系列の長さ
+  vector[N_timepoints] y[N_people]; // 各個人の観測データ
+}
+parameters {
+  real phi2;      // 自己回帰係数2
+  real<lower=0> sigma; // ノイズの標準偏差
+  real mu;        // 平均
+}
+model {
+  phi2 ~ normal(0, 1); // phi2の事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  mu ~ normal(0, 10); // muの事前分布
+  for (j in 1:N_people) {
+    for (n in 3:N_timepoints) {
+      y[j][n] ~ normal(mu + phi2 * (y[j][n-2] - mu), sigma); // AR(2)モデル
+    }
+  }
+}
+generated quantities {
+  vector[N_timepoints] log_lik[N_people];
+  for (j in 1:N_people) {
+    log_lik[j][1] = 0; // 最初の2時点の対数尤度は計算しないため、0とする
+    log_lik[j][2] = 0; // 最初の2時点の対数尤度は計算しないため、0とする
+    for (n in 3:N_timepoints) {
+      log_lik[j][n] = normal_lpdf(y[j][n] | mu + phi2 * (y[j][n-2] - mu), sigma);
+    }
+  }
+}
+")
+
+```
+
+```{r fit}
+# 各モデルのフィッティング
+fit_combined_AR0 <- sampling(stan_model_AR0, data = data_list, iter = 2000, chains = 4, refresh = 0)
+fit_combined_AR1 <- sampling(stan_model_AR1, data = data_list, iter = 2000, chains = 4, refresh = 0)
+fit_combined_AR2 <- sampling(stan_model_AR2, data = data_list, iter = 2000, chains = 4, refresh = 0)
+
+# 各モデルの対数尤度の抽出
+log_lik_AR0 <- extract_log_lik(fit_combined_AR0, merge_chains = TRUE)
+log_lik_AR1 <- extract_log_lik(fit_combined_AR1, merge_chains = TRUE)
+log_lik_AR2 <- extract_log_lik(fit_combined_AR2, merge_chains = TRUE)
+
+# looオブジェクトの作成
+loo_AR0 <- loo(log_lik_AR0)
+loo_AR1 <- loo(log_lik_AR1)
+loo_AR2 <- loo(log_lik_AR2)
+```
+
+
+```{r weights}
+# 各モデルのlooicを取得
+looic_AR0 <- loo_AR0$estimates["looic", "Estimate"]
+looic_AR1 <- loo_AR1$estimates["looic", "Estimate"]
+looic_AR2 <- loo_AR2$estimates["looic", "Estimate"]
+
+# 重みの計算（looicが低いほど重みが大きくなるように逆数を取る）
+weights <- exp(-0.5 * c(looic_AR0, looic_AR1, looic_AR2))
+weights <- weights / sum(weights)  # 正規化
+
+# 重みの表示
+print(weights)
+```

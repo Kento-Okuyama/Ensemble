@@ -1,0 +1,341 @@
+---
+title: "sim_multipersons"
+output: html_document
+date: "2024-04-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+```
+
+```{r AR1 average instruction}
+
+# 疑似コード
+
+# 1. 75人分のAR(1)時系列データを生成します（既に完了していると仮定）
+
+# 2. 全データに共通のパラメータを持つAR(1)モデルを設定
+#    （実際には、このステップを直接実装するRの関数は限られています）
+
+# 3. モデルをデータにフィットさせる
+#    フィットさせる際には、全個人のデータを考慮し、
+#    全体に一貫したパラメータセットで最適化を行います。
+
+# 4. モデルの適合度を評価
+#    この適合度は、例えば、尤度比テストや情報量基準（AIC、BICなど）を用いて評価できます。
+```
+
+```{r AR1 average simulation}
+# 必要なパッケージのロード
+library(forecast)
+
+# 人数と時系列の長さの定義
+n_people <- 75
+n_timepoints <- 125
+
+# 75人分のAR(1)時系列データを格納するリストを初期化
+time_series_list <- list()
+
+# 各個人に対して独立したAR(1)プロセスでデータを生成
+set.seed(123)  # 再現性のためのシード設定
+for(i in 1:n_people) {
+  # AR(1) パラメータを設定（例：phi=0.5、mu=0、sigma=1）
+  # ここで、phiは自己回帰係数、muは平均、sigmaはノイズの標準偏差です。
+  phi <- 0.5
+  mu <- 0
+  sigma <- 1
+  
+  # AR(1)プロセスに基づいたデータ生成
+  e <- rnorm(n_timepoints, mean = mu, sd = sigma)  # ノイズの生成
+  data <- numeric(n_timepoints)
+  data[1] <- e[1]  # 初期値
+  
+  for(t in 2:n_timepoints) {
+    data[t] <- mu + phi * (data[t-1] - mu) + e[t]
+  }
+  
+  # 生成した時系列データをリストに追加
+  time_series_list[[i]] <- data
+}
+
+# 75人全員分の時系列データをプロット
+plot(1:n_timepoints, rep(NA, n_timepoints), type = 'n', xlim = c(1, n_timepoints), ylim = range(unlist(time_series_list)), main = "AR(1) Time Series for All Individuals", xlab = "Time", ylab = "Value")
+
+# 75色でプロットするための色を生成
+colors <- rainbow(n_people)
+
+for(i in 1:n_people) {
+  lines(1:n_timepoints, time_series_list[[i]], col = colors[i], lwd = 1)
+}
+```
+
+```{r Setup}
+# Stan用データリストの作成
+data_list <- lapply(time_series_list, function(y) {
+  list(N = length(y), y = y)
+})
+
+# rstanパッケージのロード
+library(rstan)
+
+# rstanのオプション設定
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+```{r AR0 average estimation}
+# Stanモデルのコンパイル (AR0モデルへの変更)
+stan_model <- stan_model(model_code = "
+data {
+  int<lower=1> N; // データ点数
+  vector[N] y;    // 観測データ
+}
+parameters {
+  real mu;        // 平均
+  real<lower=0> sigma; // ノイズの標準偏差
+}
+model {
+  mu ~ normal(0, 10); // muの事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  y ~ normal(mu, sigma); // AR(0)モデル
+}
+generated quantities {
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | mu, sigma);
+  }
+}
+")
+
+# 複数人のデータに対してMCMCサンプリングを実行し、適合度を計算する関数
+fit_multiple_people <- function(data_list) {
+  log_likelihoods <- numeric(length(data_list)) # 各個人の対数尤度を格納するベクター
+  
+  for (i in seq_along(data_list)) {
+    fit <- sampling(stan_model, data = data_list[[i]], iter = 2000, chains = 4, refresh = 0) # MCMCサンプリングの実行後
+    log_lik_extracted <- extract(fit)$log_lik # 対数尤度の抽出
+    log_likelihoods[i] <- sum(log_lik_extracted) # 対数尤度の合計を保存
+  }
+  
+  return(log_likelihoods)
+}
+
+# 各個人のデータをStanのデータリストに変換
+data_list <- lapply(time_series_list, function(y) list(N = length(y), y = y))
+
+# 全員に対する適合度の最適化
+log_likelihoods <- fit_multiple_people(data_list)
+
+# 結果の表示
+print(log_likelihoods)
+
+# 対数尤度の平均と分散を計算
+log_likelihoods_mean <- mean(log_likelihoods)
+log_likelihoods_var <- var(log_likelihoods)
+
+# LPPDの計算と表示
+LPPD <- sum(log_likelihoods_mean)
+cat(sprintf("LPPD: %.4f\n", LPPD))
+
+# Pの計算と表示
+P <- sum(log_likelihoods_var)
+cat(sprintf("P: %.4f\n", P))
+
+# WAICの計算と表示
+WAIC <- -2 * (LPPD - P)
+cat(sprintf("WAIC: %.4f\n", WAIC))
+```
+
+```{r AR1 average estimation}
+# Stanモデルのコンパイル
+stan_model <- stan_model(model_code = "
+data {
+  int<lower=1> N; // データ点数
+  vector[N] y;    // 観測データ
+}
+parameters {
+  real phi;       // 自己回帰係数
+  real<lower=0> sigma; // ノイズの標準偏差
+}
+model {
+  phi ~ normal(0, 1); // phiの事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  for (n in 2:N) {
+    y[n] ~ normal(phi * y[n-1], sigma); // AR(1)モデル
+  }
+}
+generated quantities {
+  vector[N] log_lik;
+  log_lik[1] = 0; // 最初の時点の対数尤度は計算しないため、0とする
+  for (n in 2:N) {
+    log_lik[n] = normal_lpdf(y[n] | phi * y[n-1], sigma);
+  }
+}
+")
+
+# 複数人のデータに対してMCMCサンプリングを実行し、適合度を計算する関数
+fit_multiple_people <- function(data_list) {
+  log_likelihoods <- numeric(length(data_list)) # 各個人の対数尤度を格納するベクター
+  
+  for (i in seq_along(data_list)) {
+    fit <- sampling(stan_model, data = data_list[[i]], iter = 2000/2000, chains = 4, refresh = 0) # MCMCサンプリングの実行後
+    log_lik_extracted <- extract(fit)$log_lik # 対数尤度の抽出
+    log_likelihoods[i] <- sum(log_lik_extracted) # 対数尤度の合計を保存
+  }
+  
+  return(log_likelihoods)
+}
+
+# 各個人のデータをStanのデータリストに変換
+data_list <- lapply(time_series_list, function(y) list(N = length(y), y = y))
+
+# 全員に対する適合度の最適化
+log_likelihoods <- fit_multiple_people(data_list)
+
+# 結果の表示
+print(log_likelihoods)
+
+# 対数尤度の平均と分散を計算
+log_likelihoods_mean <- mean(log_likelihoods)
+log_likelihoods_var <- var(log_likelihoods)
+
+# LPPDの計算と表示
+LPPD <- sum(log_likelihoods_mean)
+cat(sprintf("LPPD: %.4f\n", LPPD))
+
+# Pの計算と表示
+P <- sum(log_likelihoods_var)
+cat(sprintf("P: %.4f\n", P))
+
+# WAICの計算と表示
+WAIC <- -2 * (LPPD - P)
+cat(sprintf("WAIC: %.4f\n", WAIC))
+```
+
+```{r AR2 average estimation} 
+# Stanモデルのコンパイル (AR2モデルへの変更)
+stan_model <- stan_model(model_code = "
+data {
+  int<lower=1> N; // データ点数
+  vector[N] y;    // 観測データ
+}
+parameters {
+  real phi1;      // 自己回帰係数1
+  real phi2;      // 自己回帰係数2
+  real<lower=0> sigma; // ノイズの標準偏差
+}
+model {
+  phi1 ~ normal(0, 1); // phi1の事前分布
+  phi2 ~ normal(0, 1); // phi2の事前分布
+  sigma ~ cauchy(0, 2.5); // sigmaの事前分布
+  for (n in 3:N) {
+    y[n] ~ normal(phi1 * y[n-1] + phi2 * y[n-2], sigma); // AR(2)モデル
+  }
+}
+generated quantities {
+  vector[N] log_lik;
+  log_lik[1] = 0; // 最初の2時点の対数尤度は計算しないため、0とする
+  log_lik[2] = 0; // 最初の2時点の対数尤度は計算しないため、0とする
+  for (n in 3:N) {
+    log_lik[n] = normal_lpdf(y[n] | phi1 * y[n-1] + phi2 * y[n-2], sigma);
+  }
+}
+")
+
+# 複数人のデータに対してMCMCサンプリングを実行し、適合度を計算する関数
+fit_multiple_people <- function(data_list) {
+  log_likelihoods <- numeric(length(data_list)) # 各個人の対数尤度を格納するベクター
+  
+  for (i in seq_along(data_list)) {
+    fit <- sampling(stan_model, data = data_list[[i]], iter = 2000/2000, chains = 4, refresh = 0) # MCMCサンプリングの実行後
+    log_lik_extracted <- extract(fit)$log_lik # 対数尤度の抽出
+    log_likelihoods[i] <- sum(log_lik_extracted) # 対数尤度の合計を保存
+  }
+  
+  return(log_likelihoods)
+}
+
+# 各個人のデータをStanのデータリストに変換
+data_list <- lapply(time_series_list, function(y) list(N = length(y), y = y))
+
+# 全員に対する適合度の最適化
+log_likelihoods <- fit_multiple_people(data_list)
+
+# 結果の表示
+print(log_likelihoods)
+
+# 対数尤度の平均と分散を計算
+log_likelihoods_mean <- mean(log_likelihoods)
+log_likelihoods_var <- var(log_likelihoods)
+
+# LPPDの計算と表示
+LPPD <- sum(log_likelihoods_mean)
+cat(sprintf("LPPD: %.4f\n", LPPD))
+
+# Pの計算と表示
+P <- sum(log_likelihoods_var)
+cat(sprintf("P: %.4f\n", P))
+
+# WAICの計算と表示
+WAIC <- -2 * (LPPD - P)
+cat(sprintf("WAIC: %.4f\n", WAIC))
+```
+
+```{r AR0-AR2 averaging} 
+# 各モデルの情報量基準を計算（ここではWAICを例とする）
+# waics <- c(WAIC_AR0, WAIC_AR1, WAIC_AR2)
+
+# 各モデルの重みを計算
+# weights <- exp(-0.5 * waics) / sum(exp(-0.5 * waics))
+
+# 重みを表示
+# print(weights)
+
+# 予測値のモデル平均化（仮定：各モデルからの予測値があるとする）
+# predicted_values <- c(predict_AR0, predict_AR1, predict_AR2)
+# average_prediction <- sum(weights * predicted_values)
+```
+
+
+```{r AR0-AR2 averaging} 
+
+# Stanモデルのコンパイル (階層的ARモデル)
+stan_model <- stan_model(model_code = "
+data {
+  int<lower=1> N; // データ点数
+  int<lower=1> J; // 個人の数
+  vector[N] y[J]; // 観測データ
+}
+parameters {
+  real mu;        // 平均
+  real<lower=0> sigma; // ノイズの標準偏差
+  real<lower=0> phi;   // 自己回帰係数
+  vector[J] alpha; // 個人ごとのランダム効果
+  real<lower=0> tau; // ランダム効果の標準偏差
+}
+model {
+  mu ~ normal(0, 10); 
+  sigma ~ cauchy(0, 2.5);
+  phi ~ normal(0, 1);
+  alpha ~ normal(0, tau);
+  tau ~ cauchy(0, 2.5);
+  for (j in 1:J) {
+    for (n in 2:N) {
+      y[j][n] ~ normal(mu + phi * (y[j][n-1] - mu) + alpha[j], sigma);
+    }
+  }
+}
+")
+
+# データリストの作成
+data_list <- list(N = n_timepoints, J = n_people, y = time_series_list)
+
+# MCMCサンプリングの実行
+fit <- sampling(stan_model, data = data_list, iter = 2000, chains = 4)
+
+# 結果の表示
+print(fit)
+
+```
+

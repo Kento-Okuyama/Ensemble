@@ -1,0 +1,32 @@
+ar1 and ar2 not much model fit differences
+
+linear quadratic model
+
+
+- model fit
+
+likelihood
+aic
+mean squared residuals
+
+- nested then complex models are preffered 
+
+
+ar1-ar2 not big difference?
+
+
+
+
+-----------------------
+
+raise popualtion streng
+
+aic
+penalize it
+out of sample
+
+--------------------------
+
+
+add persons
+
