@@ -152,6 +152,20 @@ generated quantities {
 }
 ")
 
+# Prepare the data for Stan
+data_list <- list(
+  N_people = n_people,
+  N_timepoints = n_timepoints,
+  y = do.call(rbind, lapply(1:n_people, function(i) time_series_list[[i]])),
+  y_hat_AR1 = y_hat_AR1,
+  y_hat_AR2 = y_hat_AR2,
+  y_hat_AR3 = y_hat_AR3
+)
+
+# Set rstan options
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
 # Fit the Stan models
 fit_AR1 <- sampling(stan_model_AR1, data = data_list, iter = 2000, chains = 4)
 fit_AR2 <- sampling(stan_model_AR2, data = data_list, iter = 2000, chains = 4)
@@ -172,20 +186,6 @@ colors <- rainbow(n_people)  # Create a color palette for each individual
 for (i in 1:n_people) {
   lines(1:n_timepoints, time_series_list[[i]], col = colors[i], lwd = 1)
 }
-
-# Prepare the data for Stan
-data_list <- list(
-  N_people = n_people,
-  N_timepoints = n_timepoints,
-  y = do.call(rbind, lapply(1:n_people, function(i) time_series_list[[i]])),
-  y_hat_AR1 = y_hat_AR1,
-  y_hat_AR2 = y_hat_AR2,
-  y_hat_AR3 = y_hat_AR3
-)
-
-# Set rstan options
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
 
 # Define the Stan model (ensure it is named correctly)
 stan_model_ens <- stan_model(model_code = "

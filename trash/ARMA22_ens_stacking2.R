@@ -5,9 +5,9 @@ library(loo)
 library(ggplot2)
 
 # Define parameters for data generation
-n_people <- 10
-n_burnins <- 25
-n_timepoints <- 30
+n_people <- 10 
+n_burnins <- 25 
+n_timepoints <- 30 
 
 # Initialize list to store time series data for each person
 time_series_list <- list()
@@ -152,165 +152,169 @@ generated quantities {
 }
 ")
 
-# Fit the Stan models
-fit_AR1 <- sampling(stan_model_AR1, data = data_list, iter = 2000, chains = 4)
-fit_AR2 <- sampling(stan_model_AR2, data = data_list, iter = 2000, chains = 4)
-fit_AR3 <- sampling(stan_model_AR3, data = data_list, iter = 2000, chains = 4)
-
-# Extract posterior predictive samples (y_hat) for each model
-y_hat_AR1 = apply(extract(fit_AR1, pars = "y_hat")$y_hat, c(2,3), mean)
-y_hat_AR2 = apply(extract(fit_AR2, pars = "y_hat")$y_hat, c(2,3), mean)
-y_hat_AR3 = apply(extract(fit_AR3, pars = "y_hat")$y_hat, c(2,3), mean)
-
-
-# Visualize the generated time series data
-plot(1:n_timepoints, type = 'n', 
-     xlim = c(1, n_timepoints), ylim = range(unlist(time_series_list)), 
-     main = "ARMA(2,2) Time Series for All Individuals", 
-     xlab = "Time", ylab = "Value")
-colors <- rainbow(n_people)  # Create a color palette for each individual
-for (i in 1:n_people) {
-  lines(1:n_timepoints, time_series_list[[i]], col = colors[i], lwd = 1)
-}
-
 # Prepare the data for Stan
 data_list <- list(
   N_people = n_people,
   N_timepoints = n_timepoints,
   y = do.call(rbind, lapply(1:n_people, function(i) time_series_list[[i]])),
-  y_hat_AR1 = y_hat_AR1,
-  y_hat_AR2 = y_hat_AR2,
-  y_hat_AR3 = y_hat_AR3
+  loo_scores = array(c(loo_AR1$pointwise[,1], loo_AR2$pointwise[,1], loo_AR3$pointwise[,1]), 
+                     dim = c(n_people, n_timepoints, 3))
 )
 
-# Set rstan options
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
+# Fit the Stan models
+fit_AR1 <- sampling(stan_model_AR1, data = data_list, iter = 2000, chains = 4)
+fit_AR2 <- sampling(stan_model_AR2, data = data_list, iter = 2000, chains = 4)
+fit_AR3 <- sampling(stan_model_AR3, data = data_list, iter = 2000, chains = 4)
 
-# Define the Stan model (ensure it is named correctly)
+# Extract log-likelihood and posterior predictive samples (y_hat) for each model
+log_lik_AR1 <- extract_log_lik(fit_AR1)
+log_lik_AR2 <- extract_log_lik(fit_AR2)
+log_lik_AR3 <- extract_log_lik(fit_AR3)
+
+# Calculate LOO scores
+loo_AR1 <- loo(log_lik_AR1)
+loo_AR2 <- loo(log_lik_AR2)
+loo_AR3 <- loo(log_lik_AR3)
+
+# Store LOO scores in an array
+loo_scores <- array(c(loo_AR1$pointwise[,1], loo_AR2$pointwise[,1], loo_AR3$pointwise[,1]), 
+                    dim = c(n_people, n_timepoints, 3))
+
+# Define the Stan model for dynamic weights using GP and LOO scores
 stan_model_ens <- stan_model(model_code = "
-data {
-  int<lower=1> N_people;          // Number of individuals
-  int<lower=1> N_timepoints;      // Number of time points
-  vector[N_timepoints] y[N_people];         // Observed data
-  vector[N_timepoints] y_hat_AR1[N_people]; // Predictions from AR(1) model
-  vector[N_timepoints] y_hat_AR2[N_people]; // Predictions from AR(2) model
-  vector[N_timepoints] y_hat_AR3[N_people]; // Predictions from AR(3) model
-}
-parameters {
-  real<lower=0> eta;               // Scale parameter for the GP
-  real<lower=0> rho;               // Length-scale parameter for the GP
-  matrix[N_timepoints, 3] w_raw[N_people];  // Raw weights to be transformed by the GP
-  real<lower=0> sigma;             // Standard deviation of observation noise
-}
-transformed parameters {
-  matrix[N_timepoints, 3] w[N_people];      // Final weights after applying the GP
-
-  {
-    // Covariance matrix for the GP
+  data {
+    int<lower=1> N_people;
+    int<lower=1> N_timepoints;
+    vector[N_timepoints] y[N_people];
+    vector[3] loo_scores[N_people, N_timepoints];
+  }
+  parameters {
+    real<lower=0> eta;
+    real<lower=0> rho;
+    real<lower=0> sigma;
+    matrix[N_timepoints, 3] w_raw[N_people];
+  }
+  transformed parameters {
+    matrix[N_timepoints, 3] w[N_people];
     matrix[N_timepoints, N_timepoints] K;
     matrix[N_timepoints, N_timepoints] L_K;
-
+    
     for (i in 1:N_timepoints) {
       for (j in 1:N_timepoints) {
         if (i == j) {
-          K[i, j] = eta^2 + 1e-10;  // Add a small jitter for numerical stability
+          K[i, j] = eta^2 + 1e-10;
         } else {
           K[i, j] = eta^2 * exp(-square(i - j) / (2 * rho^2));
         }
       }
     }
-
-    // Cholesky decomposition of the covariance matrix
+  
     L_K = cholesky_decompose(K);
-
-    // Apply the GP to each individual's raw weights
+  
     for (j in 1:N_people) {
       matrix[N_timepoints, 3] w_temp = L_K * w_raw[j];
       for (t in 1:N_timepoints) {
-        w[j, t] = to_row_vector(softmax(to_vector(w_temp[t])));  // Ensure weights are between 0 and 1 and sum to 1
+        vector[3] w_t = softmax(to_vector(w_temp[t]));
+        w[j, t] = to_row_vector(w_t);
       }
     }
   }
-}
-model {
-  // Priors
-  eta ~ normal(0, 1);
-  rho ~ normal(0, 1);
-  for (j in 1:N_people) {
-    for (k in 1:3) {
-      w_raw[j, , k] ~ normal(0, 1);
+  model {
+    eta ~ normal(0, 1);
+    rho ~ normal(0, 1);
+    for (j in 1:N_people) {
+      for (k in 1:3) {
+        w_raw[j, , k] ~ normal(0, 1);
+      }
+    }
+    sigma ~ cauchy(0, 2.5);
+  
+    for (j in 1:N_people) {
+      for (t in 1:N_timepoints) {
+        vector[3] loo_t = loo_scores[j, t];
+        vector[3] w_t = to_vector(w[j, t]);
+        y[j][t] ~ normal(dot_product(loo_t, w_t), 1e-10);
+      }
     }
   }
-  sigma ~ cauchy(0, 2.5);
-
-  // Likelihood
-  for (j in 1:N_people) {
-    for (t in 1:N_timepoints) {
-      real y_pred = w[j, t, 1] * y_hat_AR1[j, t] + w[j, t, 2] * y_hat_AR2[j, t] + w[j, t, 3] * y_hat_AR3[j, t];
-      y[j, t] ~ normal(y_pred, sigma);
+  generated quantities {
+    vector[N_timepoints] y_hat_ens[N_people];
+    for (j in 1:N_people) {
+      for (t in 1:N_timepoints) {
+        vector[3] w_t = to_vector(w[j, t]); 
+        y_hat_ens[j][t] = dot_product(loo_scores[j, t], w_t);
+      }
     }
   }
-}
-generated quantities {
-  vector[N_timepoints] log_lik[N_people]; // Log-likelihood for each data point
-  vector[N_timepoints] y_hat_ens[N_people];   // Posterior predictive distributions
-  for (j in 1:N_people) {
-    for (t in 1:N_timepoints) {
-      real y_pred = w[j, t, 1] * y_hat_AR1[j, t] + w[j, t, 2] * y_hat_AR2[j, t] + w[j, t, 3] * y_hat_AR3[j, t];
-      log_lik[j][t] = normal_lpdf(y[j][t] | y_pred, sigma);
-      y_hat_ens[j][t] = normal_rng(y_pred, sigma);
-    }
-  }
-}
 ")
 
-# Set initial values manually
-init_values <- list(
-  list(w = matrix(1/3, nrow = n_timepoints, ncol = 3), sigma = 1),
-  list(w = matrix(1/3, nrow = n_timepoints, ncol = 3), sigma = 1),
-  list(w = matrix(1/3, nrow = n_timepoints, ncol = 3), sigma = 1),
-  list(w = matrix(1/3, nrow = n_timepoints, ncol = 3), sigma = 1)
-)
+# Set rstan options
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
 
+# Fit the ensemble model
 fit_combined <- sampling(
   stan_model_ens, 
   data = data_list, 
-  iter = 2000, 
-  warmup = 1000, 
+  iter = 4000, 
+  warmup = 2000, 
   chains = 4, 
-  control = list(max_treedepth = 15, adapt_delta = 0.99),  # increase adapt_delta and max_treedepth
-  init = init_values
+  control = list(max_treedepth = 20, adapt_delta = 0.999)
 )
 
 # Extract samples
 samples <- extract(fit_combined)
 
-# Posterior predictive distributions
-y_hat_ensemble <- samples$y_hat
+# Extract weights from the samples
+w_samples <- samples$w
 
-# Ensure y_hat_ensemble has the correct dimensions (samples, N_people, N_timepoints)
-y_hat_ensemble <- array(y_hat_ensemble, dim = c(dim(y_hat_ensemble)[1], n_people, n_timepoints))
-
-# Function to calculate mean squared error (MSE) at each time point starting from the 3rd data point
-calculate_mse_time <- function(y_hat, y_true, start_point = 4) {
-  mse_values <- sapply(start_point:dim(y_hat)[2], function(t) {  # Iterate over time points starting from 'start_point'
-    mse_per_person <- sapply(1:nrow(y_true), function(i) (y_hat[i, t] - y_true[i, t])^2)
-    return(mean(mse_per_person)) # Average MSE across individuals for this time point
-  })
-  return(mse_values) # MSE for each time point
+# Check the weights
+for (j in 1:1) {
+  print(paste("Person", j))
+  for (t in n_burnins:n_burnins) {
+    print(paste("Time", t))
+    # Extract the weights for person j at time t across all models
+    weights <- w_samples[, j, t, ]
+    print(head(weights)) # Print the weights (average over samples can be done)
+    print(mean(weights)) # Print the mean of weights over samples
+  }
 }
 
-# Calculate MSE for each model at each time point starting from the 3rd data point
-mse_time_AR1 <- calculate_mse_time(array(y_hat_AR1, dim = c(n_people, n_timepoints)), data_list$y)
-mse_time_AR2 <- calculate_mse_time(array(y_hat_AR2, dim = c(n_people, n_timepoints)), data_list$y)
-mse_time_AR3 <- calculate_mse_time(array(y_hat_AR3, dim = c(n_people, n_timepoints)), data_list$y)
+# Posterior predictive distributions
+y_hat_AR1 <- extract(fit_AR1, pars = "y_hat")$y_hat
+y_hat_AR2 <- extract(fit_AR2, pars = "y_hat")$y_hat
+y_hat_AR3 <- extract(fit_AR3, pars = "y_hat")$y_hat
+y_hat_ensemble <- samples$y_hat_ens
 
-# Calculate MSE for the ensemble at each time point starting from the 3rd data point
-mse_time_ensemble <- calculate_mse_time(apply(y_hat_ensemble, c(2,3), mean), data_list$y)
+# Ensure y_hat arrays have correct dimensions
+y_hat_AR1 <- array(y_hat_AR1, dim = c(dim(y_hat_AR1)[1], n_people, n_timepoints))
+y_hat_AR2 <- array(y_hat_AR2, dim = c(dim(y_hat_AR2)[1], n_people, n_timepoints))
+y_hat_AR3 <- array(y_hat_AR3, dim = c(dim(y_hat_AR3)[1], n_people, n_timepoints))
+y_hat_ensemble <- array(y_hat_ensemble, dim = c(dim(y_hat_ensemble)[1], n_people, n_timepoints))
+
+print(y_hat_AR1[1,1,n_burnins])
+print(y_hat_AR2[1,1,n_burnins])
+print(y_hat_AR3[1,1,n_burnins])
+print(y_hat_ensemble[1,1,n_burnins])
+
+# Function to calculate mean squared error (MSE) at each time point starting from the 3rd data point
+calculate_mse_time <- function(y_hat, y_true, start_point = n_burnins) {
+  y_hat_mean <- apply(y_hat, c(2, 3), mean)  # Calculate the mean of predictions across samples
+  mse_values <- sapply(start_point:ncol(y_true), function(t) {
+    mse_per_person <- sapply(1:nrow(y_true), function(i) (y_hat_mean[i, t] - y_true[i, t])^2)
+    return(mean(mse_per_person))  # Compute the average MSE across individuals for this time point
+  })
+  return(mse_values)
+}
+
+# Calculate MSE for each model at each time point starting from the 4th data point
+mse_time_AR1 <- calculate_mse_time(y_hat_AR1, data_list$y)
+mse_time_AR2 <- calculate_mse_time(y_hat_AR2, data_list$y)
+mse_time_AR3 <- calculate_mse_time(y_hat_AR3, data_list$y)
+mse_time_ensemble <- calculate_mse_time(y_hat_ensemble, data_list$y)
 
 # Define x-axis for the plot (starting from the 3rd data point)
-x_axis <- 4:n_timepoints
+x_axis <- n_burnins:n_timepoints
 
 # Prepare data for plotting
 mse_time_data <- data.frame(
@@ -323,7 +327,7 @@ mse_time_data <- data.frame(
 ggplot(mse_time_data, aes(x = Time, y = MSE, color = Model, group = Model)) +
   geom_line(size = 1.2) +
   scale_y_log10() +
-  labs(title = "MSE over Time (Starting from 4th Data Point)", x = "Time", y = "Log(MSE)") +
+  labs(title = "MSE over Time", x = "Time", y = "Log(MSE)") +
   theme_minimal() +
   theme(
     plot.title = element_text(hjust = 0.5),
@@ -345,4 +349,3 @@ ggplot(error_data, aes(x = Error, color = Model, fill = Model)) +
   labs(title = "Error Distribution by Model", x = "Log(Error)", y = "Density") +
   theme_minimal() +
   theme(legend.position = "top")
-
