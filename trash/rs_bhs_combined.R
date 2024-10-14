@@ -5,7 +5,7 @@ library(rstan)
 
 # 1. Generate synthetic data with deterministic regime switching
 set.seed(123)
-n <- 100  # Number of time points
+n <- 30  # Number of time points
 X <- numeric(n)  # Hidden state
 Y <- numeric(n)  # Observed data
 state <- numeric(n)  # Regime (1 for regime 1, 2 for regime 2)
@@ -156,3 +156,4 @@ ggplot() +
   geom_line(data = df_hidden_simple, aes(x = time, y = X_estimated, color = "Simple Model"), size = 0.7, linetype = "dashed") +
   labs(title = "Comparison of Actual and Predicted X", x = "Time", y = "X") +
   theme_minimal()
+

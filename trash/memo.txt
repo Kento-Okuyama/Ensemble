@@ -1,0 +1,49 @@
+Feb 2024
+Feb 2025
+Feb 2026
+Feb 2027
+
+
+
+Forecasting
+
+finish empirical by October 2023
+submit the article by December 2023
+
+
+Ensemble
+
+インプットに依存したモデルで、異なるモデルの重みを用いたスタッキングを行い、ガウス過程などを用いてスムージングする。
+階層性を持たせたデータ生成過程および、そのモデル推定を取り入れる。
+モデルのパフォーマンス評価は、LOOCV（Leave-One-Out Cross-Validation）などのベイズ的手法に基づいて行う。
+
+- topic: 
+
+(hierarchical structure) longitudinal data with regime switch estimated by ensemble methods (BHS?)
+
+- outline:
+
+1. intro
+2. model
+3. methods
+4. simulation
+5. empirical
+6. discussion
+
+
+Tentative work schedule
+
+Mon AM administration
+Mon PM german
+
+Tue AM 
+Tue PM coding
+ 
+Wed AM
+Wed PM coding
+
+Thu AM 
+Thu PM coding
+
+Fri AM teaching prep
+Fri PM teaching
