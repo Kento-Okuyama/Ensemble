@@ -143,6 +143,7 @@ model {
     }
   }
 }
+
 generated quantities {
   real weighted_prediction;  
   real variance_weighted;

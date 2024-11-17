@@ -113,9 +113,7 @@ transformed parameters {
   vector[4] w[Nt];               // Dynamic weights
   
   // Initialize weights
-  for (n in 1:N) {
-    w[1] = [1, 0, 0, 0]';
-  } 
+  w[1] = [1, 0, 0, 0]';
 
   // Update weights based on transition probabilities
   for (t in 2:Nt) {
@@ -124,6 +122,7 @@ transformed parameters {
     }
   }
 }
+
 model {
   real weighted_prediction;
   real variance_weighted;
