@@ -7,15 +7,13 @@ Feb 2027
 
 Forecasting
 
-finish empirical by October 2023
-submit the article by December 2023
+finish empirical by October 2024
+submit the article by December 2024
 
 
 Ensemble
 
-インプットに依存したモデルで、異なるモデルの重みを用いたスタッキングを行い、ガウス過程などを用いてスムージングする。
-階層性を持たせたデータ生成過程および、そのモデル推定を取り入れる。
-モデルのパフォーマンス評価は、LOOCV（Leave-One-Out Cross-Validation）などのベイズ的手法に基づいて行う。
+Input-dependent models with stacking using different model weights and smoothing using Gaussian processes, etc. Incorporate a hierarchical data generation process and its model estimation. Model performance evaluation is based on Bayesian methods such as Leave-One-Out Cross-Validation (LOOCV).
 
 - topic: 
 
@@ -31,19 +29,17 @@ Ensemble
 6. discussion
 
 
+Conference 
+DAGStat / SEM (March 2025)
+DGPS Sept 2025
+
 Tentative work schedule
 
 Mon AM administration
 Mon PM german
 
-Tue AM 
-Tue PM coding
+Tue-Thu AM read papers 
+Tue-Thu PM coding
  
-Wed AM
-Wed PM coding
-
-Thu AM 
-Thu PM coding
-
 Fri AM teaching prep
 Fri PM teaching
