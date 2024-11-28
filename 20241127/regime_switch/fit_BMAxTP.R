@@ -60,7 +60,7 @@ fit_BMAxTP <- function(data, iter = 2000, chains = 4) {
   }
 
   generated quantities {
-    matrix[N, train_Nt-1] log_lik;  // Log-likelihood for PSIS-LOO
+    matrix[N, train_Nt] log_lik;  // Log-likelihood for PSIS-LOO
     matrix[N, test_Nt] test_y_pred; // Predicted values for test data
     real SSE;
     real RMSE;
@@ -71,13 +71,13 @@ fit_BMAxTP <- function(data, iter = 2000, chains = 4) {
     gamma = 0.1;
     
     for (n in 1:N) {
-      for (t in 2:train_Nt) {
+      for (t in 1:train_Nt) {
         real weighted_prediction = 0;
         for (j in 1:J) {
           weighted_prediction += w[t][j] * train_f[n, t, j];
         }
         pi_t = 1 + gamma - square(1 - 1.0 * t / train_Nt); 
-        log_lik[n, t-1] = pi_t * normal_lpdf(train_y[n, t] | weighted_prediction, sigma);
+        log_lik[n, t] = pi_t * normal_lpdf(train_y[n, t] | weighted_prediction, sigma);
       }
 
       for (t in 1:test_Nt) {

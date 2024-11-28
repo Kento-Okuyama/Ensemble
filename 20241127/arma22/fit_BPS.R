@@ -53,24 +53,19 @@ fit_BPS <- function(data, iter = 2000, chains = 4) {
   }
   
   generated quantities {
-    matrix[N, train_Nt-1] log_lik;  // Log-likelihood for PSIS-LOO
+    matrix[N, train_Nt] log_lik;  // Log-likelihood for PSIS-LOO
     matrix[N, test_Nt] test_y_pred; // Predicted values for test data
     real SSE;
     real RMSE; 
-    real pi_t;
-    real gamma;
 
     SSE = 0;
-    gamma = 0.1;
-    
     for (n in 1:N) {
-      for (t in 2:train_Nt) {
+      for (t in 1:train_Nt) {
         vector[J] model_predictions;
         for (j in 1:J) {
           model_predictions[j] = train_f[n, t, j];
         }
-        pi_t = 1 + gamma - square(1 - 1.0 * t / train_Nt);
-        log_lik[n, t-1] = pi_t * normal_lpdf(train_y[n, t] | alpha[t] + dot_product(beta[t], model_predictions), sigma);
+        log_lik[n, t] = normal_lpdf(train_y[n, t] | alpha[t] + dot_product(beta[t], model_predictions), sigma);
       }
       
       for (t in 1:test_Nt) {
