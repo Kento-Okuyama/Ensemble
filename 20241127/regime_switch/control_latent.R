@@ -19,8 +19,8 @@ library_load()
 seed <- 123
 
 # Parameters for data simulation
-N <- 10    # Number of time series
-Nt <- 50  # Length of each time series
+N <- 5    # Number of time series
+Nt <- 30  # Length of each time series
 
 # Simulate the data
 df_latent <- DGP_latent(N = N, Nt = Nt, seed = seed, train_ratio = 0.8)
@@ -29,11 +29,14 @@ df_latent <- DGP_latent(N = N, Nt = Nt, seed = seed, train_ratio = 0.8)
 # Fit stan model #
 ##################
 
+n_iter <- 1000
+n_chains <- 1
+
 # model stacking
-res_apriori_latent <- fit_apriori_latent(data = df_latent, iter = 2000, chains = 4)
-res_BMA <- fit_BMA(data = res_apriori_latent$data_fit, iter = 2000, chains = 4)
-res_BMAxTP <- fit_BMAxTP(data = res_apriori_latent$data_fit, iter = 2000, chains = 4)
-res_BPS <- fit_BPS(data = res_apriori_latent$data_fit, iter = 2000, chains = 4)
+res_apriori_latent <- fit_apriori_latent(data = df_latent, iter = n_iter, chains = n_chains)
+res_BMA <- fit_BMA(data = res_apriori_latent$data_fit, iter = n_iter, chains = n_chains)
+res_BMAxTP <- fit_BMAxTP(data = res_apriori_latent$data_fit, iter = n_iter, chains = n_chains)
+res_BPS <- fit_BPS(data = res_apriori_latent$data_fit, iter = n_iter, chains = n_chains)
 
 res_ar <- res_apriori_latent$res_ar
 res_ma <- res_apriori_latent$res_ma
