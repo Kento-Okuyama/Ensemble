@@ -26,7 +26,7 @@ library_load()
 seed <- 123  # Set the random seed for reproducibility
 
 # Parameters for data simulation
-Nt <- 50  # Length of each time series
+Nt <- 100  # Length of each time series
 
 # ===========================
 #    Simulate Data
@@ -56,7 +56,7 @@ res_apriori <- fit_apriori(data = df, iter = n_iter, chains = n_chains)
 # Fit Bayesian Model Averaging (BMA) model
 res_BMA <- fit_BMA(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
 
-# Fit Bayesian Predictive Stacking (BPS) models
+# Fit Bayesian Predictive Synthesis (BPS) models
 res_BPS <- fit_BPS(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
 res_BPS2 <- fit_BPS2(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
 
@@ -67,7 +67,6 @@ res_ma <- res_apriori$res_ma
 # ===========================
 #   Check Convergence (Rhat)
 # ===========================
-# Uncomment the lines below for manual inspection of Rhat values
 # sort(summary(res_ar$fit)$summary[, "Rhat"])
 # sort(summary(res_ma$fit)$summary[, "Rhat"])
 # sort(summary(res_BMA$fit)$summary[, "Rhat"])
@@ -118,41 +117,41 @@ print(data.frame(
 #   Model Weight Estimation
 # ===========================
 # Prepare models and extract log likelihoods
-model_list <- list(res_ar$fit, res_ma$fit)
-log_lik_list <- lapply(model_list, extract_log_lik)
+# model_list <- list(res_ar$fit, res_ma$fit)
+# log_lik_list <- lapply(model_list, extract_log_lik)
 
 # Compute relative efficiency for stacking method
-r_eff_list <- lapply(model_list, function(x) {
-  ll_array <- extract_log_lik(x, merge_chains = FALSE)
-  relative_eff(exp(ll_array))
-})
+# r_eff_list <- lapply(model_list, function(x) {
+#   ll_array <- extract_log_lik(x, merge_chains = FALSE)
+#   relative_eff(exp(ll_array))
+# })
 
 # Stacking method weights
-wts1 <- loo_model_weights(log_lik_list, 
-                          method = "stacking", 
-                          r_eff_list = r_eff_list, 
-                          optim_control = list(reltol = 1e-10))
-print(wts1)
+# wts1 <- loo_model_weights(log_lik_list, 
+#                           method = "stacking", 
+#                           r_eff_list = r_eff_list, 
+#                           optim_control = list(reltol = 1e-10))
+# print(wts1)
 
 # Prepare LOO objects to avoid redundant computations
-loo_list <- lapply(1:length(log_lik_list), function(j) {
-  loo(log_lik_list[[j]], r_eff = r_eff_list[[j]])
-})
+# loo_list <- lapply(1:length(log_lik_list), function(j) {
+#   loo(log_lik_list[[j]], r_eff = r_eff_list[[j]])
+# })
 
 # Confirm weights consistency
-wts2 <- loo_model_weights(loo_list, 
-                          method = "stacking", 
-                          r_eff_list = r_eff_list, 
-                          optim_control = list(reltol = 1e-10))
-all.equal(wts1, wts2)
+# wts2 <- loo_model_weights(loo_list, 
+#                           method = "stacking", 
+#                           r_eff_list = r_eff_list, 
+#                           optim_control = list(reltol = 1e-10))
+# all.equal(wts1, wts2)
 
 # Assign model names for easier interpretation
-loo_model_weights(setNames(loo_list, c("AR", "MA")))
+# loo_model_weights(setNames(loo_list, c("AR", "MA")))
 
 # Compute weights using alternative methods (pseudo-BMA)
-loo_model_weights(loo_list, method = "pseudobma")
-loo_model_weights(loo_list, method = "pseudobma", BB = FALSE)
+# loo_model_weights(loo_list, method = "pseudobma")
+# loo_model_weights(loo_list, method = "pseudobma", BB = FALSE)
 
 # Extract customized BMA results
-colMeans(extract(res_BMA$fit, "w")$w)
+# colMeans(extract(res_BMA$fit, "w")$w)
 

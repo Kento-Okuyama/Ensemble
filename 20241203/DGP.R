@@ -10,21 +10,21 @@ DGP <- function(Nt = 30, seed = 123, train_ratio = 0.6, val_ratio = 0.2) {
   mu <- c(0, 0, 0)           # Means for each regime
   ar_coef <- 0.7             # Positive AR coefficient for regime 1
   ma_coef <- 0.5             # MA coefficient for regime 2
-  lambda <- 1                # Factor loading for eta -> y
+  lambda <- c(1, 0.8, 1.2)   # Factor loading for eta -> y
   sigma_m <- 3               # Measurement noise standard deviation
   sigma_s <- c(1, 2, 3)      # Standard deviations for each regime
   
   # Dynamic transition probabilities
-  alpha <- matrix(c(1, 0.3, 0.1, 
-                    0.3, 0.8, 0.1, 
+  alpha <- matrix(c(5, 1, 1, 
+                    1, 5, 1, 
                     0.3, 0.2, 0.6), nrow = 3, byrow = TRUE)  # Base probabilities
-  beta <- matrix(c(0.1, 0.03, 0.01, 
-                   0.03, 0.08, 0.01, 
-                   0.03, 0.02, 0.06), nrow = 3, byrow = TRUE)  # Dynamic adjustments
+  beta <- matrix(c(0.5, 0.1, 0.1, 
+                   0.1, 0.5, 0.1, 
+                   0.03, 0.03, 0.06), nrow = 3, byrow = TRUE)  # Dynamic adjustments
   
   # Normalize function ensures probabilities sum to 1
   normalize <- function(values) {
-    values / sum(exp(values))  # Softmax-like normalization
+    exp(values) / sum(exp(values))  # normalization
   }
   
   # Function to calculate dynamic transition matrix based on eta
@@ -48,10 +48,10 @@ DGP <- function(Nt = 30, seed = 123, train_ratio = 0.6, val_ratio = 0.2) {
   regime <- rep(NA, Nt)       # Regime labels
   
   # Initialize first time step
-  current_regime <- 1
+  current_regime <- sample(1:2, 1, prob = c(1/2, 1/2))
   regime[1] <- current_regime
   eta[1] <- rnorm(1, mu[current_regime], sigma_s[current_regime])
-  y[1] <- lambda * eta[1] + rnorm(1, 0, sigma_m)
+  y[1] <- lambda[current_regime] * eta[1] + rnorm(1, 0, sigma_m)
   
   # ===========================
   #    Simulate Time Series
@@ -79,7 +79,7 @@ DGP <- function(Nt = 30, seed = 123, train_ratio = 0.6, val_ratio = 0.2) {
     }
     
     # Generate observed data
-    y[t] <- lambda * eta[t] + rnorm(1, 0, sigma_m)
+    y[t] <- lambda[current_regime] * eta[t] + rnorm(1, 0, sigma_m)
   }
   
   # ===========================

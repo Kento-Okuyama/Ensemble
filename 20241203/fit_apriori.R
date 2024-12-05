@@ -28,6 +28,7 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
   parameters {
     real<lower=-1, upper=1> ar_coef;    // AR coefficient
     real mu_ar;                         // Mean for the AR model
+    real lambda;                        // Factor loading for measurement model
     real<lower=0> sigma_ar;             // Standard deviation for AR
     real<lower=0> sigma_m;              // Standard deviation for measurement error
     real train_eta[train_Nt];           // Latent states
@@ -47,7 +48,7 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
     
     // Measurement model
     for (t in 1:train_Nt) {
-      train_y[t] ~ normal(train_eta[t], sigma_m);
+      train_y[t] ~ normal(lambda * train_eta[t], sigma_m);
     }
   }
   generated quantities {
@@ -63,12 +64,12 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
     y_pred_ar[1] = normal_rng(eta_pred_ar[1], sigma_m);
     for (t in 2:(train_Nt + val_Nt + test_Nt)) {
       eta_pred_ar[t] = normal_rng((1 - ar_coef) * mu_ar + ar_coef * eta_pred_ar[t-1], sigma_ar);
-      y_pred_ar[t] = normal_rng(eta_pred_ar[t], sigma_m);
+      y_pred_ar[t] = normal_rng(lambda * eta_pred_ar[t], sigma_m);
     }
 
     // Calculate log-likelihood
     for (t in 1:train_Nt) {
-      log_lik[t] = normal_lpdf(train_y[t] | train_eta[t], sigma_m);
+      log_lik[t] = normal_lpdf(train_y[t] | lambda * train_eta[t], sigma_m);
     }
 
     // Compute test RMSE
@@ -91,8 +92,9 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
     real test_y[test_Nt];
   }
   parameters {
-    real ma_coef;    // MA coefficient
+    real ma_coef;                       // MA coefficient
     real mu_ma;                         // Mean for the MA model
+    real lambda;                        // Factor loading for measurement model
     real<lower=0> sigma_ma;             // Standard deviation for MA
     real<lower=0> sigma_m;              // Standard deviation for measurement error
     real train_eta[train_Nt];           // Latent states
@@ -112,7 +114,7 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
 
     // Measurement model
     for (t in 1:train_Nt) {
-      train_y[t] ~ normal(train_eta[t], sigma_m);
+      train_y[t] ~ normal(lambda * train_eta[t], sigma_m);
     }
   }
   generated quantities {
@@ -128,12 +130,12 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
     y_pred_ma[1] = normal_rng(eta_pred_ma[1], sigma_m);
     for (t in 2:(train_Nt + val_Nt + test_Nt)) {
       eta_pred_ma[t] = normal_rng(mu_ma + ma_coef * (eta_pred_ma[t - 1] - mu_ma), sigma_ma);
-      y_pred_ma[t] = normal_rng(eta_pred_ma[t], sigma_m);
+      y_pred_ma[t] = normal_rng(lambda * eta_pred_ma[t], sigma_m);
     }
 
     // Calculate log-likelihood
     for (t in 1:train_Nt) {
-      log_lik[t] = normal_lpdf(train_y[t] | train_eta[t], sigma_m);
+      log_lik[t] = normal_lpdf(train_y[t] | lambda * train_eta[t], sigma_m);
     }
 
     // Compute test RMSE
