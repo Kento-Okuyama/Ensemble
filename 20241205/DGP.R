@@ -18,9 +18,9 @@ DGP <- function(Nt = 30, seed = 123, train_ratio = 0.6, val_ratio = 0.2) {
   alpha <- matrix(c(5, 1, 0.5, 
                     1, 5, 0.5, 
                     0.3, 0.2, 0.6), nrow = 3, byrow = TRUE)  # Base probabilities
-  beta <- 2 * matrix(c(0.5, -0.5, 0, 
-                   0.5, -0.5, 0, 
-                   0.5, -0.5, 0), nrow = 3, byrow = TRUE)  # Dynamic adjustments
+  beta <- matrix(c(1, -1, 0, 
+                   1, -1, 0, 
+                   1, -1, 0), nrow = 3, byrow = TRUE)  # Dynamic adjustments
   
   # Normalize function ensures probabilities sum to 1
   normalize <- function(values) {
