@@ -1,4 +1,4 @@
-fit_BMA <- function(data, iter = 2000, chains = 4) {
+fit_BMA <- function(data, iter = 2000, chains = 4, refresh = 0) {
   # ===========================
   #    Stan Model Code
   # ===========================
@@ -70,7 +70,7 @@ fit_BMA <- function(data, iter = 2000, chains = 4) {
   #    Fit the Stan Model
   # ===========================
   fit <- tryCatch({
-    stan(model_code = stan_code, data = data, iter = iter, chains = chains)
+    stan(model_code = stan_code, data = data, iter = iter, chains = chains, refresh = refresh)
   }, error = function(e) {
     stop("Stan model fitting failed: ", e)
   })
@@ -83,11 +83,11 @@ fit_BMA <- function(data, iter = 2000, chains = 4) {
   loo_result <- loo(log_lik, moment_match = TRUE)
   
   # Print LOO results
-  print(loo_result)
+  # print(loo_result)
   
   # Extract test RMSE
   test_rmse <- mean(extract(fit, pars = "RMSE")$RMSE)
-  cat("\n", "Average RMSE for each individual:", test_rmse, "\n")
+  # cat("\n", "Average RMSE for each individual:", test_rmse, "\n")
   
   # ===========================
   #    Visualize Posterior Distributions

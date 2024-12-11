@@ -1,4 +1,4 @@
-fit_BPS2 <- function(data, iter = 2000, chains = 4) {
+fit_BPS2 <- function(data, iter = 2000, chains = 4, refresh = 0) {
   stan_code <- "
   data {
   int<lower=1> N;                    // Number of individuals
@@ -86,7 +86,7 @@ fit_BPS2 <- function(data, iter = 2000, chains = 4) {
   "
   
   fit <- tryCatch({
-    stan(model_code = stan_code, data = data, iter = iter, chains = chains)
+    stan(model_code = stan_code, data = data, iter = iter, chains = chains, refresh = refresh)
   }, error = function(e) {
     stop("Stan model fitting failed: ", e)
   })
@@ -94,10 +94,10 @@ fit_BPS2 <- function(data, iter = 2000, chains = 4) {
   log_lik <- extract_log_lik(fit, parameter_name = "log_lik", merge_chains = FALSE)
   loo_result <- loo(log_lik, moment_match = TRUE)
   
-  print(loo_result)
+  # print(loo_result)
   
   test_rmse <- mean(extract(fit, pars = "RMSE")$RMSE)
-  cat("\n", "Average RMSE across all samples:", test_rmse, "\n")
+  # cat("\n", "Average RMSE across all samples:", test_rmse, "\n")
 
   return(list(
     fit = fit,

@@ -29,7 +29,7 @@ Nt <- 50
 # ===========================
 #   Multiple Runs Setup
 # ===========================
-n_runs <- 100          # Number of iterations
+n_runs <- 50          # Number of iterations
 result_list <- list()  # Store results for each run
 
 # ===========================
@@ -49,10 +49,10 @@ for (i in 1:n_runs) {
   df <- DGP(N = N, Nt = Nt, seed = seed, train_ratio = 0.6, val_ratio = 0.2)
   
   # Fit models
-  res_apriori <- fit_apriori(data = df, iter = n_iter, chains = n_chains)
-  res_BMA <- fit_BMA(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
-  res_BPS <- fit_BPS(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
-  res_BPS2 <- fit_BPS2(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
+  res_apriori <- fit_apriori(data = df, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BMA <- fit_BMA(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BPS <- fit_BPS(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BPS2 <- fit_BPS2(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
   
   # Extract results
   results <- data.frame(

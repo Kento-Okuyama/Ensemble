@@ -1,11 +1,11 @@
-fit_apriori <- function(data, iter = 2000, chains = 4) {
+fit_apriori <- function(data, iter = 2000, chains = 4, refresh = 0) {
   # ===========================
   #    Helper Function
   # ===========================
-  fit_model <- function(stan_code, data, iter, chains) {
+  fit_model <- function(stan_code, data, iter, chains, refresh) {
     # Compile and fit the Stan model
     fit <- tryCatch({
-      stan(model_code = stan_code, data = data, iter = iter, chains = chains)
+      stan(model_code = stan_code, data = data, iter = iter, chains = chains, refresh = refresh)
     }, error = function(e) {
       stop("Stan model fitting failed: ", e)
     })
@@ -162,8 +162,8 @@ fit_apriori <- function(data, iter = 2000, chains = 4) {
   # ===========================
   #    Fit Models
   # ===========================
-  fit_ar <- fit_model(stan_code_ar, data, iter, chains)
-  fit_ma <- fit_model(stan_code_ma, data, iter, chains)
+  fit_ar <- fit_model(stan_code_ar, data, iter, chains, refresh)
+  fit_ma <- fit_model(stan_code_ma, data, iter, chains, refresh)
   
   # ===========================
   #    Extract and Process Results
