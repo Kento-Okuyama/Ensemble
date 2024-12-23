@@ -85,7 +85,6 @@ write.csv(final_results, "model_comparison_results.csv", row.names = FALSE)
 # ===========================
 #   Analyze Results
 # ===========================
-library(dplyr)
 
 # Calculate summary statistics
 summary_stats <- final_results %>%
@@ -99,11 +98,16 @@ print(summary_stats)
 # Optionally, visualize results
 rmse_columns <- final_results %>% select(starts_with("test_rmse"))
 
+# Specify the file path and format 
+png("test_rmse_across_models.png", width = 800, height = 600)
+
+# Create the plot
 boxplot(rmse_columns, 
         main = "Test RMSE across models", 
         las = 2, 
         xlab = "Models", 
         ylab = "Test RMSE",
-        names = c("AR", "MA", "BMA", "BPS", "BPS2"))
+        names = c("AR", "MA", "BMA", "BPS", "BPS2")) 
 
-
+# Close the file
+dev.off()

@@ -80,7 +80,6 @@ write.csv(final_results, "model_comparison_results.csv", row.names = FALSE)
 # ===========================
 #   Analyze Results
 # ===========================
-library(dplyr)
 
 # Calculate summary statistics
 summary_stats <- final_results %>%
