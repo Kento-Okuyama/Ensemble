@@ -11,3 +11,10 @@
  - Fitted models: AR1 & MA1 
 
 20241219
+
+### next step
+
+ - extend fit_apriori
+ - which currently takes mean values for prediction
+ - by taking the entire samples instead
+

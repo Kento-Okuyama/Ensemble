@@ -57,11 +57,6 @@ for (i in 1:n_runs) {
   # Extract results
   results <- data.frame(
     run = i,
-    elpd_loo_AR = res_apriori$res_ar$loo_result$estimates["elpd_loo", "Estimate"],
-    elpd_loo_MA = res_apriori$res_ma$loo_result$estimates["elpd_loo", "Estimate"],
-    elpd_loo_BMA = res_BMA$loo_result$estimates["elpd_loo", "Estimate"],
-    elpd_loo_BPS = res_BPS$loo_result$estimates["elpd_loo", "Estimate"],
-    elpd_loo_BPS2 = res_BPS2$loo_result$estimates["elpd_loo", "Estimate"],
     test_rmse_AR = res_apriori$res_ar$test_rmse,
     test_rmse_MA = res_apriori$res_ma$test_rmse,
     test_rmse_BMA = res_BMA$test_rmse,
