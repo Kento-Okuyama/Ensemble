@@ -7,84 +7,105 @@ rm(list = ls())  # Clear all objects from the workspace
 setwd('C:/Users/kento/OneDrive - UT Cloud (1)/PhD/Ensemble/20241218')
 
 # ===========================
-#  Load External Scripts
+#   Load External Scripts
 # ===========================
-source('library.R')
-source('DGP.R')
-source('fit_apriori.R')
-source('fit_BMA.R')
-source('fit_BPS.R')
-source('fit_BPS2.R')
+# Load necessary R scripts for custom functions and models
+source('library.R')       # Contains library imports and setups
+source('DGP.R')           # Function for data generation process
+source('fit_apriori.R')   # Model fitting function: Apriori
+source('fit_BMA.R')       # Model fitting function: Bayesian Model Averaging
+source('fit_BPS.R')       # Model fitting function: Bayesian Predictive Stacking
+source('fit_BPS2.R')      # Model fitting function: Alternative Bayesian Predictive Stacking
 
+# Load additional libraries using a custom function
 library_load()
 
 # ===========================
 #  Set Parameters
 # ===========================
-seed <- 123  
 N <- 10       
-Nt <- 50     
+Nt <- 50    
 
 # ===========================
-#  Simulate Data
+#   Multiple Runs Setup
 # ===========================
-df <- DGP(N = N, Nt = Nt, seed = seed, train_ratio = 0.6, val_ratio = 0.2)
+n_runs <- 50          # Number of iterations
+result_list <- list()  # Store results for each run
 
 # ===========================
-#  Model Fitting Parameters
+#   Model Fitting Parameters
 # ===========================
-n_iter <- 2000
-n_chains <- 4
+n_iter <- 2000   # Number of iterations for Stan model
+n_chains <- 4    # Number of chains for Stan model
+
+# Progress bar setup
+pb <- txtProgressBar(min = 0, max = n_runs, style = 3)
+
+for (i in 1:n_runs) {
+  # Update seed
+  seed <- 123 + i  # Change seed for each iteration
+  
+  # Generate data
+  df <- DGP(N = N, Nt = Nt, seed = seed, train_ratio = 0.6, val_ratio = 0.2)
+  
+  # Fit models
+  res_apriori <- fit_apriori(data = df, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BMA <- fit_BMA(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BPS <- fit_BPS(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
+  res_BPS2 <- fit_BPS2(data = res_apriori$data_fit, iter = n_iter, chains = n_chains, refresh = 0)
+  
+  # Extract results
+  results <- data.frame(
+    run = i,
+    test_rmse_AR = res_apriori$res_ar$test_rmse,
+    test_rmse_MA = res_apriori$res_ma$test_rmse,
+    test_rmse_BMA = res_BMA$test_rmse,
+    test_rmse_BPS = res_BPS$test_rmse,
+    test_rmse_BPS2 = res_BPS2$test_rmse
+  )
+  
+  # Append to list
+  result_list[[i]] <- results
+  
+  # Update progress bar
+  setTxtProgressBar(pb, i)
+}
+
+# Combine results into a single data frame
+final_results <- do.call(rbind, result_list)
+
+# Save results to a CSV file
+write.csv(final_results, "model_comparison_results.csv", row.names = FALSE)
 
 # ===========================
-#  Fit Models
+#   Analyze Results
 # ===========================
-res_apriori <- fit_apriori(data = df, iter = n_iter, chains = n_chains)
-res_BMA <- fit_BMA(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
-res_BPS <- fit_BPS(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
-res_BPS2 <- fit_BPS2(data = res_apriori$data_fit, iter = n_iter, chains = n_chains)
 
-res_ar <- res_apriori$res_ar
-res_ma <- res_apriori$res_ma
+# Calculate summary statistics
+summary_stats <- final_results %>%
+  summarise(
+    across(starts_with("test_rmse"), list(mean = mean, sd = sd))
+  )
 
-# ===========================
-#  Check Convergence (Rhat)
-# ===========================
-rhat_values <- list(
-  AR = summary(res_ar$fit)$summary[, "Rhat"],
-  MA = summary(res_ma$fit)$summary[, "Rhat"],
-  BMA = summary(res_BMA$fit)$summary[, "Rhat"],
-  BPS = summary(res_BPS$fit)$summary[, "Rhat"],
-  BPS2 = summary(res_BPS2$fit)$summary[, "Rhat"]
-)
+# Print summary statistics
+print(summary_stats)
 
-# lapply(rhat_values, sort)
+# Optionally, visualize results
+rmse_columns <- final_results %>% select(starts_with("test_rmse"))
 
-# ===========================
-#  Compare Models
-# ===========================
-comparison <- data.frame(
-  Metric = c("elpd_loo", "p_loo", "looic", "test_rmse"),
-  AR = c(res_ar$loo_result$estimates["elpd_loo", "Estimate"],
-         res_ar$loo_result$estimates["p_loo", "Estimate"],
-         res_ar$loo_result$estimates["looic", "Estimate"],
-         res_ar$test_rmse),
-  MA = c(res_ma$loo_result$estimates["elpd_loo", "Estimate"],
-         res_ma$loo_result$estimates["p_loo", "Estimate"],
-         res_ma$loo_result$estimates["looic", "Estimate"],
-         res_ma$test_rmse),
-  BMA = c(res_BMA$loo_result$estimates["elpd_loo", "Estimate"],
-          res_BMA$loo_result$estimates["p_loo", "Estimate"],
-          res_BMA$loo_result$estimates["looic", "Estimate"],
-          res_BMA$test_rmse),
-  BPS = c(res_BPS$loo_result$estimates["elpd_loo", "Estimate"],
-          res_BPS$loo_result$estimates["p_loo", "Estimate"],
-          res_BPS$loo_result$estimates["looic", "Estimate"],
-          res_BPS$test_rmse),
-  BPS2 = c(res_BPS2$loo_result$estimates["elpd_loo", "Estimate"],
-           res_BPS2$loo_result$estimates["p_loo", "Estimate"],
-           res_BPS2$loo_result$estimates["looic", "Estimate"],
-           res_BPS2$test_rmse)
-)
-print(comparison)
+# Specify the file path and format 
+png("test_rmse_across_models.png", width = 800, height = 600)
+
+# Create the plot
+boxplot(rmse_columns, 
+        main = "Test RMSE across models", 
+        las = 2, 
+        xlab = "Models", 
+        ylab = "Test RMSE",
+        names = c("AR", "MA", "BMA", "BPS", "BPS2")) 
+
+# Close the file
+dev.off()
+
+
 

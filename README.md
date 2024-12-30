@@ -4,17 +4,15 @@
  - DGP: AR1 & MA1 & WN
  - Fitted models: AR1 & MA1 
 
-20241218
+20241218: y-based ensemble
+20241230: eta-based ensemble
 
 ### M-open problem
  - DGP: ARMA(2,3) & MA(2) & WN
  - Fitted models: AR1 & MA1 
 
-20241219
+20241219: y-based ensemble
 
-### next step
-
- - extend fit_apriori
- - which currently takes mean values for prediction
- - by taking the entire samples instead
-
+### next step 
+ - run 20241230
+ - if it works, create the analogue for M-open

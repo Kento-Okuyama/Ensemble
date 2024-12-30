@@ -4,23 +4,24 @@ fit_BPS <- function(data, iter = 2000, chains = 4, refresh = 0) {
   # ===========================
   stan_code <- "
   data {
-  int<lower=1> N;                  // Number of individuals
-  int<lower=1> val_Nt;             // Number of validation data points
-  int<lower=1> test_Nt;            // Number of test data points
-  int<lower=1> J;                  // Number of models
-  real val_y[N, val_Nt];           // Validation observed data
-  real val_f[N, val_Nt, J];        // Validation model predictions
-  real test_y[N, test_Nt];         // Test observed data
-  real test_f[N, test_Nt, J];      // Test model predictions
+    int<lower=1> N;                  // Number of individuals
+    int<lower=1> val_Nt;             // Number of validation data points
+    int<lower=1> test_Nt;            // Number of test data points
+    int<lower=1> J;                  // Number of models
+    int<lower=1> S;                  // Number of samples per model
+    real val_y[N, val_Nt];           // Validation observed data
+    real val_f[S, N, val_Nt, J];     // Validation model predictions (samples)
+    real test_y[N, test_Nt];         // Test observed data
+    real test_f[S, N, test_Nt, J];   // Test model predictions (samples)
   }
   
   parameters {
-    simplex[J] mu[N];                // Initial model weights for each individual
-    vector[val_Nt + test_Nt] alpha[N];  // Time-varying intercept for each individual
+    simplex[J] mu[N];                  // Initial model weights for each individual
+    vector[val_Nt + test_Nt] alpha[N]; // Time-varying intercept for each individual
     vector[J] beta[N, val_Nt + test_Nt]; // Time-varying weights for each time step and individual
-    real<lower=0> sigma[N];          // Observation noise standard deviation for each individual
-    real<lower=0, upper=1> tau;      // Random walk noise for alpha
-    real<lower=0, upper=1> eta;      // Random walk noise for beta
+    real<lower=0> sigma[N];            // Observation noise standard deviation for each individual
+    real<lower=0, upper=1> tau;        // Random walk noise for alpha
+    real<lower=0, upper=1> eta;        // Random walk noise for beta
   }
   
   model {
@@ -47,17 +48,17 @@ fit_BPS <- function(data, iter = 2000, chains = 4, refresh = 0) {
   
       // Likelihood for validation data
       for (t in 1:val_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = val_f[n, t, j];
+          mean_model_predictions[j] = mean(val_f[, n, t, j]);
         }
-        val_y[n, t] ~ normal(alpha[n, t] + dot_product(beta[n, t], model_predictions), sigma[n]);
+        val_y[n, t] ~ normal(alpha[n, t] + dot_product(beta[n, t], mean_model_predictions), sigma[n]);
       }
     }
   }
   
   generated quantities {
-    real log_lik[N, val_Nt];         // Log-likelihood for PSIS-LOO
+    real log_lik[N, val_Nt];         // Log-likelihood 
     real test_y_pred[N, test_Nt];    // Predicted values for test data
     real SSE;                        // Sum of Squared Errors (single scalar)
     real RMSE;                       // Root Mean Square Error (single scalar)
@@ -69,21 +70,21 @@ fit_BPS <- function(data, iter = 2000, chains = 4, refresh = 0) {
     for (n in 1:N) {
       // Log-likelihood for validation data
       for (t in 1:val_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = val_f[n, t, j];
+          mean_model_predictions[j] = mean(val_f[, n, t, j]);
         }
         pi_t = 1 + gamma - square(1 - 1.0 * t / val_Nt);
-        log_lik[n, t] = pi_t * normal_lpdf(val_y[n, t] | alpha[n, t] + dot_product(beta[n, t], model_predictions), sigma[n]);
+        log_lik[n, t] = pi_t * normal_lpdf(val_y[n, t] | alpha[n, t] + dot_product(beta[n, t], mean_model_predictions), sigma[n]);
       }
   
       // Predictions for test data
       for (t in 1:test_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = test_f[n, t, j];
+          mean_model_predictions[j] = mean(test_f[, n, t, j]);
         }
-        test_y_pred[n, t] = normal_rng(alpha[n, val_Nt + t] + dot_product(beta[n, val_Nt + t], model_predictions), sigma[n]);
+        test_y_pred[n, t] = normal_rng(alpha[n, val_Nt + t] + dot_product(beta[n, val_Nt + t], mean_model_predictions), sigma[n]);
         SSE += square(test_y[n, t] - test_y_pred[n, t]);
       }
     }
@@ -105,33 +106,30 @@ fit_BPS <- function(data, iter = 2000, chains = 4, refresh = 0) {
   #    Extract and Process Results
   # ===========================
   log_lik <- extract_log_lik(fit, parameter_name = "log_lik", merge_chains = FALSE)
-  loo_result <- loo(log_lik, moment_match = TRUE)
-  
+
   # Extract time-varying weights
   weights <- extract(fit, pars = "beta")$beta
   
   # Convert weights to a data frame for visualization
-  weights_df <- as.data.frame(weights)
+  weights_df <- weights
   dimnames(weights_df) <- list(
-    iterations = NULL,
-    individuals = 1:dim(weights)[1],
-    time_steps = 1:dim(weights)[2],
-    models = paste0("Model_", 1:dim(weights)[3])
+    iterations = 1:dim(weights)[1],
+    individuals = 1:dim(weights)[2],
+    time_steps = 1:dim(weights)[3],
+    models = paste0("Model_", 1:dim(weights)[4])
   )
   
   # Compute average weights across all iterations
-  average_weights <- apply(weights, c(2, 3), mean)  # Average over iterations
+  average_weights <- apply(weights, c(2, 3, 4), mean)  # Average over iterations
   
   # Print the average weights (per individual and model)
   cat("\nAverage weights for each individual and model:\n")
   print(average_weights)
   
   # Reshape weights for plotting
-  library(reshape2)
   weights_long <- melt(weights, varnames = c("Individual", "Time", "Model"), value.name = "Weight")
   
   # Plot time-varying weights
-  library(ggplot2)
   ggplot(weights_long, aes(x = Time, y = Weight, color = as.factor(Model))) +
     geom_line() +
     facet_wrap(~ Individual, scales = "free_y") +
@@ -147,7 +145,6 @@ fit_BPS <- function(data, iter = 2000, chains = 4, refresh = 0) {
   return(list(
     fit = fit,
     log_lik = log_lik,
-    loo_result = loo_result,
     test_rmse = mean(extract(fit, pars = "RMSE")$RMSE),
     weights = weights_df
   ))

@@ -1,24 +1,27 @@
 fit_BPS2 <- function(data, iter = 2000, chains = 4, refresh = 0) {
+  # ===========================
+  #    Stan Model Code
+  # ===========================
   stan_code <- "
   data {
-  int<lower=1> N;                    // Number of individuals
-  int<lower=1> train_Nt;             // Training data length
-  int<lower=1> val_Nt;               // Validation data length
-  int<lower=1> test_Nt;              // Test data length
-  int<lower=1> J;                    // Number of models
-  vector[J] pred_e[N, train_Nt + val_Nt + test_Nt]; // Latent predictions
-  real val_y[N, val_Nt];             // Validation observed data
-  real val_f[N, val_Nt, J];          // Validation model predictions
-  real test_y[N, test_Nt];           // Test observed data
-  real test_f[N, test_Nt, J];        // Test model predictions
+    int<lower=1> N;                  // Number of individuals
+    int<lower=1> val_Nt;             // Validation data length
+    int<lower=1> test_Nt;            // Test data length
+    int<lower=1> J;                  // Number of models
+    int<lower=1> S;                  // Number of samples per model
+    vector[J] pred_e[S, N, train_Nt + val_Nt + test_Nt]; // Latent predictions (samples)
+    real val_y[N, val_Nt];           // Validation observed data
+    real val_f[S, N, val_Nt, J];     // Validation model predictions (samples)
+    real test_y[N, test_Nt];         // Test observed data
+    real test_f[S, N, test_Nt, J];   // Test model predictions (samples)
   }
   
   parameters {
     simplex[J] mu[N];                  // Initial model weights for each individual
-    real alpha[N, val_Nt + test_Nt];   // Time-varying intercept for each individual
+    vector[val_Nt + test_Nt] alpha[N]; // Time-varying intercept for each individual
     vector[J] beta[N, val_Nt + test_Nt]; // Time-varying weights for each time step and individual
-    vector[J] delta[N];                // eta-dependent intercept change 
-    vector[J] theta[N];                // eta-dependent model weight change
+    vector[J] delta[N];                // Eta-dependent intercept change
+    vector[J] theta[N];                // Eta-dependent model weight change
     real<lower=0> sigma[N];            // Observation noise standard deviation for each individual
     real<lower=0, upper=1> tau_a;      // Random walk noise for alpha
     real<lower=0, upper=1> tau_b;      // Random walk noise for beta
@@ -44,16 +47,20 @@ fit_BPS2 <- function(data, iter = 2000, chains = 4, refresh = 0) {
       beta[n, 1] ~ normal(mu[n], tau_b);  
   
       for (t in 2:(val_Nt + test_Nt)) {
-        alpha[n, t] ~ normal(alpha[n, t - 1] + pred_e[n, train_Nt + t - 1] .* delta[n], tau_a);
-        beta[n, t] ~ normal(beta[n, t - 1] + pred_e[n, train_Nt + t - 1] .* theta[n], tau_b);
+        vector[J] mean_pred_e;
+        for (j in 1:J) {
+          mean_pred_e[j] = mean(pred_e[, n, train_Nt + t - 1, j]);
+        }
+        alpha[n, t] ~ normal(alpha[n, t - 1] + dot_product(mean_pred_e, delta[n]), tau_a);
+        beta[n, t] ~ normal(beta[n, t - 1] + dot_product(mean_pred_e, theta[n]), tau_b);
       }
   
       for (t in 1:val_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = val_f[n, t, j];
+          mean_model_predictions[j] = mean(val_f[, n, t, j]);
         }
-        val_y[n, t] ~ normal(alpha[n, t] + dot_product(beta[n, t], model_predictions), sigma[n]);
+        val_y[n, t] ~ normal(alpha[n, t] + dot_product(beta[n, t], mean_model_predictions), sigma[n]);
       }
     }
   }
@@ -63,27 +70,23 @@ fit_BPS2 <- function(data, iter = 2000, chains = 4, refresh = 0) {
     real test_y_pred[N, test_Nt];
     real SSE;
     real RMSE;
-    real pi_t;
-    real gamma;
 
     SSE = 0;
-    gamma = 0.1;
     for (n in 1:N) {
       for (t in 1:val_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = val_f[n, t, j];
+          mean_model_predictions[j] = mean(val_f[, n, t, j]);
         }
-        pi_t = 1 + gamma - square(1 - 1.0 * t / val_Nt);
-        log_lik[n, t] = pi_t * normal_lpdf(val_y[n, t] | alpha[n, t] + dot_product(beta[n, t], model_predictions), sigma[n]);
+        log_lik[n, t] = normal_lpdf(val_y[n, t] | alpha[n, t] + dot_product(beta[n, t], mean_model_predictions), sigma[n]);
       }
   
       for (t in 1:test_Nt) {
-        vector[J] model_predictions;
+        vector[J] mean_model_predictions;
         for (j in 1:J) {
-          model_predictions[j] = test_f[n, t, j];
+          mean_model_predictions[j] = mean(test_f[, n, t, j]);
         }
-        test_y_pred[n, t] = normal_rng(alpha[n, val_Nt + t] + dot_product(beta[n, val_Nt + t], model_predictions), sigma[n]);
+        test_y_pred[n, t] = normal_rng(alpha[n, val_Nt + t] + dot_product(beta[n, val_Nt + t], mean_model_predictions), sigma[n]);
         SSE += square(test_y[n, t] - test_y_pred[n, t]);
       }
     }
@@ -101,39 +104,23 @@ fit_BPS2 <- function(data, iter = 2000, chains = 4, refresh = 0) {
   log_lik <- extract_log_lik(fit, parameter_name = "log_lik", merge_chains = FALSE)
   loo_result <- loo(log_lik, moment_match = TRUE)
   
-  # Extract time-varying weights
+  # Extract beta (time-varying weights)
   weights <- extract(fit, pars = "beta")$beta
   
   # Convert weights to a data frame for visualization
-  weights_df <- as.data.frame(weights)
+  weights_df <- weights
   dimnames(weights_df) <- list(
-    iterations = NULL,
-    individuals = 1:dim(weights)[1],
-    time_steps = 1:dim(weights)[2],
-    models = paste0("Model_", 1:dim(weights)[3])
+    iterations = 1:dim(weights)[1],
+    individuals = 1:dim(weights)[2],
+    time_steps = 1:dim(weights)[3],
+    models = paste0("Model_", 1:dim(weights)[4])
   )
   
   # Compute average weights across all iterations
-  average_weights <- apply(weights, c(2, 3), mean)  # Average over iterations
+  average_weights <- apply(weights, c(2, 3, 4), mean)
   
-  # Print the average weights (per individual and model)
   cat("\nAverage weights for each individual and model:\n")
   print(average_weights)
-  
-  # Reshape weights for plotting
-  library(reshape2)
-  weights_long <- melt(weights, varnames = c("Individual", "Time", "Model"), value.name = "Weight")
-  
-  # Plot time-varying weights
-  library(ggplot2)
-  ggplot(weights_long, aes(x = Time, y = Weight, color = as.factor(Model))) +
-    geom_line() +
-    facet_wrap(~ Individual, scales = "free_y") +
-    labs(title = "Time-Varying Weights for Each Individual",
-         x = "Time",
-         y = "Weight",
-         color = "Model") +
-    theme_minimal()
   
   return(list(
     fit = fit,
