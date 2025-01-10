@@ -35,9 +35,8 @@ result_list <- list()  # Store results for each run
 # ===========================
 #   Model Fitting Parameters
 # ===========================
-n_iter <- 50   # Number of iterations for Stan model
-n_chains <- 1    # Number of chains for Stan model
-i <- 1
+n_iter <- 2000   # Number of iterations for Stan model
+n_chains <- 4    # Number of chains for Stan model
 
 # Progress bar setup
 pb <- txtProgressBar(min = 0, max = n_runs, style = 3)
