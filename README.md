@@ -15,5 +15,3 @@
 20250109: eta-based ensemble
 
 ### next step 
- - run 20241230
- - if it works, create the analogue for M-open
