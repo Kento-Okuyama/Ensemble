@@ -1,0 +1,5 @@
+sed -i 's/\r$//' test_job.sh
+sbatch --ntasks=1 --cpus-per-task=4 --mem=8G --time=00:30:00 test_job.sh
+squeue
+cat job.out
+cat job.err
