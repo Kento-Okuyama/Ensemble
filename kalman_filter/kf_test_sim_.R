@@ -122,6 +122,7 @@ cat("Simulation data generated.\n\n")
 num_runs <- 3 # 何回独立した学習を行うか
 learning_rate <- 0.01
 num_epochs <- 200 # 十分な学習のためにエポック数を200に設定
+l2_decay <- 1e-4 # L2正則化(weight_decay)を追加してモデルを安定化
 
 # --- この外側のループで、毎回パラメータが初期化される ---
 for (run in 1:num_runs) {
@@ -143,7 +144,8 @@ for (run in 1:num_runs) {
   P_i0_0 <- torch_eye(L1) * 1e3
   
   # --- オプティマイザーを定義 ---
-  optimizer <- optim_adam(list(b0, B1, b2, Lambda1), lr = learning_rate)
+  optimizer <- optim_adamw(list(b0, B1, b2, Lambda1), lr = learning_rate, weight_decay = l2_decay)
+  # optimizer <- optim_adam(list(b0, B1, b2, Lambda1), lr = learning_rate, weight_decay = l2_decay)
   
   cat(paste("Starting optimization with Adam. Epochs:", num_epochs, "LR:", learning_rate, "\n"))
   
