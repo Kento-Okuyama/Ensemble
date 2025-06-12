@@ -104,7 +104,7 @@ q_dist <- distr_multivariate_normal(torch_zeros(L1), Q_true)
 r_dist <- distr_multivariate_normal(torch_zeros(O1), R_true)
 
 for (t in 1:Nt) {
-  eta1_mean_t <- b0_true + torch_matmul(eta1_prev, B1_true$transpose(1, 2)) + torch_matmul(eta2_true, b2_true$transpose(1, 2))
+  eta1_mean_t <- b0_true$transpose(1, 2) + torch_matmul(eta1_prev, B1_true$transpose(1, 2)) + torch_matmul(eta2_true, b2_true$transpose(1, 2))
   eta1_t <- eta1_mean_t + q_dist$sample(c(N))
   eta1_true[, t, ] <- eta1_t
   
@@ -122,7 +122,7 @@ cat("Simulation data generated.\n\n")
 num_runs <- 3 # 何回独立した学習を行うか
 learning_rate <- 0.01
 num_epochs <- 200 # 十分な学習のためにエポック数を200に設定
-l2_decay <- 1e-4 # L2正則化(weight_decay)を追加してモデルを安定化
+l2_decay <- 0.01 # L2正則化(weight_decay)を追加してモデルを安定化
 
 # --- この外側のループで、毎回パラメータが初期化される ---
 for (run in 1:num_runs) {
@@ -145,10 +145,9 @@ for (run in 1:num_runs) {
   
   # --- オプティマイザーを定義 ---
   optimizer <- optim_adamw(list(b0, B1, b2, Lambda1), lr = learning_rate, weight_decay = l2_decay)
-  # optimizer <- optim_adam(list(b0, B1, b2, Lambda1), lr = learning_rate, weight_decay = l2_decay)
   
-  cat(paste("Starting optimization with Adam. Epochs:", num_epochs, "LR:", learning_rate, "\n"))
-  
+  cat(paste("Starting optimization with AdamW. Epochs:", num_epochs, "LR:", learning_rate, "Weight decay:", l2_decay, "\n"))
+
   # --- トレーニングループ ---
   for (epoch in 1:num_epochs) {
     optimizer$zero_grad()
