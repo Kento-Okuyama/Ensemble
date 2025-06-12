@@ -4,7 +4,7 @@
 rm(list = ls())  # Clear all objects from the workspace
 
 # Set the working directory
-setwd('C:/Users/kento/OneDrive - UT Cloud (1)/PhD/Ensemble/20250206')
+setwd('C:/Users/kento/OneDrive - UT Cloud (1)/PhD/Ensemble/20250213')
 
 # ===========================
 #   Load External Scripts
@@ -12,8 +12,6 @@ setwd('C:/Users/kento/OneDrive - UT Cloud (1)/PhD/Ensemble/20250206')
 # Load necessary R scripts for custom functions and models
 source('library.R')       # Contains library imports and setups
 source('DGP.R')           # Function for data generation process
-source('fit_apriori_ar1.R')   # Model fitting function: Apriori
-source('fit_apriori_ma1.R')   # Model fitting function: Apriori
 source('fit_apriori.R')   # Model fitting function: Apriori
 source('fit_BMA.R')       # Model fitting function: Bayesian Model Averaging
 source('fit_BPS.R')       # Model fitting function: Bayesian Predictive Stacking
@@ -25,20 +23,20 @@ library_load()
 # ===========================
 #  Set Parameters
 # ===========================
-N <- 10/5       
-Nt <- 50/2    
+N <- 10/2      
+Nt <- 50/5    
 
 # ===========================
 #   Multiple Runs Setup
 # ===========================
-n_runs <- 50/50          # Number of iterations
+n_runs <- 50/10           # Number of iterations
 result_list <- list()  # Store results for each run
 
 # ===========================
 #   Model Fitting Parameters
 # ===========================
-n_iter <- 2000/20   # Number of iterations for Stan model
-n_chains <- 4/4    # Number of chains for Stan model
+n_iter <- 2000/10   # Number of iterations for Stan model
+n_chains <- 4/2    # Number of chains for Stan model
 
 # Progress bar setup
 pb <- txtProgressBar(min = 0, max = n_runs, style = 3)
@@ -59,8 +57,8 @@ for (i in 1:n_runs) {
   # Extract results
   results <- data.frame(
     run = i,
-    # test_rmse_AR = res_apriori$res_ar$test_rmse,
-    # test_rmse_MA = res_apriori$res_ma$test_rmse,
+    test_rmse_AR = res_apriori$test_rmse_ar,
+    test_rmse_MA = res_apriori$test_rmse_ma,
     test_rmse_BMA = res_BMA$test_rmse,
     test_rmse_BPS = res_BPS$test_rmse,
     test_rmse_BPS2 = res_BPS2$test_rmse
@@ -104,8 +102,7 @@ boxplot(rmse_columns,
         las = 2, 
         xlab = "Models", 
         ylab = "Test RMSE",
-        names = c("BMA", "BPS", "BPS2"))
-        # names = c("AR", "MA", "BMA", "BPS", "BPS2")) 
+        names = c("AR", "MA", "BMA", "BPS", "BPS2")) 
 
 # Close the file
 dev.off()

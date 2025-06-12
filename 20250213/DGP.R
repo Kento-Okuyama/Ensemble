@@ -10,7 +10,7 @@ DGP <- function(N = 5, Nt = 30, seed = 123, train_ratio = 0.6, val_ratio = 0.2) 
   mu <- c(1, -1, 0)           # Means for each regime
   ARma_coef <- c(0.6, -0.2)    # AR coefficients for ARMA(2,3) in regime 1
   arMA_coef <- c(0.5, -0.3, 0.2) # MA coefficients for ARMA(2,3) in regime 1
-  ma_coef <- c(0.3, 0.2)
+  ma_coef <- c(0.3, 0.2)        # MA coefficients for MA(2) in regime 2
   sigma_m <- 1e-1               # Measurement noise standard deviation
   sigma_s <- c(1e-1, 1e-1, 5e-1)      # Standard deviations for each regime
   

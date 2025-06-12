@@ -13,6 +13,7 @@
 
 20241218: y-based ensemble
 20250109: eta-based ensemble
+20250213: Individual forecasts are based on Kalman filter
 
 ### next step 
 
@@ -38,8 +39,18 @@ In order to fully utilize BPS, each model weight should be regressed on all mode
 - The hot hand of Vinnie Johnson [1]
 - Rapid cycling bipolar disorder [2]
 - Dynamic Model of Activation [3]
-
+- Phase of growth and decline in athelete performance with age [4]
 
 [1] Hamaker, E.L., Grasman, R.P.P.P. Regime Switching State-Space Models Applied to Psychological Processes: Handling Missing Data and Making Inferences. Psychometrika 77, 400–422 (2012). https://doi.org/10.1007/s11336-012-9254-8
+
 [2] Hamaker, Ellen & Grasman, Raoul & Kamphuis, Jan. (2010). Regime-switching models to study psychological process. 
+
 [3] Chow, S.-M., & Zhang, G. (2013). Nonlinear Regime-Switching State-Space (RSSS) models. Psychometrika, 78(4), 740–768. https://doi.org/10.1007/s11336-013-9330-8
+
+[4] Vaci, N., Cocić, D., Gula, B. et al. Large data and Bayesian modeling—aging curves of NBA players. Behav Res 51, 1544–1564 (2019). https://doi.org/10.3758/s13428-018-1183-8
+
+# Types of misspecifications in Structural model
+
+- crossloading structure in HMM (VAR)
+- wrong autoregressiveness (order of AR / MA)
+- model changes during the measurement period (regime-switching models)
