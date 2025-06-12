@@ -5,14 +5,14 @@ library(torch)
 ## ----------------------------------------------------------------
 ## Part 1: torch を用いたカルマンフィルターの実装
 ## ----------------------------------------------------------------
-kalman_filter_torch <- function(Y1, precomputed_eta2, B1, B2, B3, Lambda1, Q, R, eta1_i0_0, P_i0_0) {
+kalman_filter_torch <- function(Y1, precomputed_eta2, b0, B1, b2, Lambda1, Q, R, eta1_i0_0, P_i0_0) {
   
   # --- 入力テンソルの次元を取得 ---
   dims <- Y1$shape
   N <- dims[1]  # 被験者数
   Nt <- dims[2] # 時間点数
   O1 <- dims[3] # 観測変数 y1 の次元
-  L1 <- B2$shape[1] # 潜在変数 eta1 の次元
+  L1 <- B1$shape[1] # 潜在変数 eta1 の次元
   
   # --- 結果を格納するためのテンソルを初期化 ---
   total_log_likelihood <- torch_tensor(0, dtype = torch_float())
@@ -33,10 +33,10 @@ kalman_filter_torch <- function(Y1, precomputed_eta2, B1, B2, B3, Lambda1, Q, R,
       
       # --- 予測ステップ ---
       # Eq (2): 潜在状態の予測
-      eta_pred <- B1 + torch_matmul(B2, eta_prev) + torch_matmul(B3, eta2_i)
+      eta_pred <- b0 + torch_matmul(B1, eta_prev) + torch_matmul(b2, eta2_i)
       
       # Eq (3): 潜在状態の共分散の予測
-      P_pred <- torch_matmul(torch_matmul(B2, P_prev), B2$transpose(1, 2)) + Q
+      P_pred <- torch_matmul(torch_matmul(B1, P_prev), B1$transpose(1, 2)) + Q
       
       # --- 1期先予測誤差 ---
       # Eq (4): イノベーション (予測誤差)
@@ -96,9 +96,9 @@ L1 <- 2      # 時間可変の潜在変数 eta1 の次元
 L2 <- 2      # 時間不変の潜在変数 eta2 の次元
 
 # --- 真のパラメータを torch テンソルとして定義 ---
-B1_true <- torch_tensor(c(0.1, -0.1), dtype = torch_float())$unsqueeze(1)$transpose(1, 2)
-B2_true <- torch_tensor(matrix(c(0.7, 0.1, -0.1, 0.6), L1, L1), dtype = torch_float())
-B3_true <- torch_tensor(matrix(c(0.5, 0.0, 0.2, 0.4), L1, L2), dtype = torch_float())
+b0_true <- torch_tensor(c(0.1, -0.1), dtype = torch_float())$unsqueeze(1)$transpose(1, 2)
+B1_true <- torch_tensor(matrix(c(0.7, 0.1, -0.1, 0.6), L1, L1), dtype = torch_float())
+b2_true <- torch_tensor(matrix(c(0.5, 0.0, 0.2, 0.4), L1, L2), dtype = torch_float())
 Lambda1_true <- torch_tensor(matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 0, 0, 1, 1.2, 0.8), O1, L1, byrow = FALSE), dtype = torch_float())
 
 # ノイズの共分散行列 (簡単のため、既知として扱う)
@@ -120,7 +120,7 @@ r_dist <- distr_multivariate_normal(torch_zeros(O1), R_true)
 
 for (t in 1:Nt) {
   # eta1 を更新
-  eta1_mean_t <- B1_true + torch_matmul(eta1_prev, B2_true$transpose(1, 2)) + torch_matmul(eta2_true, B3_true$transpose(1, 2))
+  eta1_mean_t <- b0_true + torch_matmul(eta1_prev, B1_true$transpose(1, 2)) + torch_matmul(eta2_true, b2_true$transpose(1, 2))
   eta1_t <- eta1_mean_t + q_dist$sample(c(N))
   eta1_true[, t, ] <- eta1_t
   
@@ -140,9 +140,9 @@ cat("--- 2. Initializing Parameters for Optimization ---\n")
 
 # --- 推定するパラメータをランダムに初期化 ---
 # requires_grad=TRUE にして勾配計算の対象とする
-B1 <- torch_randn(L1, 1, requires_grad = TRUE)
-B2 <- torch_randn(L1, L1, requires_grad = TRUE)
-B3 <- torch_randn(L1, L2, requires_grad = TRUE)
+b0 <- torch_randn(L1, 1, requires_grad = TRUE)
+B1 <- torch_randn(L1, L1, requires_grad = TRUE)
+b2 <- torch_randn(L1, L2, requires_grad = TRUE)
 Lambda1 <- torch_randn(O1, L1, requires_grad = TRUE)
 
 # Q と R は簡単のため真の値に固定（未知の場合はこれらも推定対象にする）
@@ -156,7 +156,7 @@ P_i0_0 <- torch_eye(L1) * 1e3 # 無情報事前分布の代わり
 
 # --- オプティマイザーを設定 ---
 learning_rate <- 0.01
-optimizer <- optim_adam(list(B1, B2, B3, Lambda1), lr = learning_rate)
+optimizer <- optim_adam(list(b0, B1, b2, Lambda1), lr = learning_rate)
 num_epochs <- 1
 
 cat(paste("Starting optimization with Adam. Epochs:", num_epochs, "LR:", learning_rate, "\n"))
@@ -170,7 +170,7 @@ for (epoch in 1:num_epochs) {
   log_likelihood <- kalman_filter_torch(
     Y1 = Y1_generated, 
     precomputed_eta2 = eta2_true,
-    B1 = B1, B2 = B2, B3 = B3, Lambda1 = Lambda1,
+    b0 = b0, B1 = B1, b2 = b2, Lambda1 = Lambda1,
     Q = Q, R = R,
     eta1_i0_0 = eta1_i0_0,
     P_i0_0 = P_i0_0
@@ -199,22 +199,22 @@ cat("Optimization finished.\n\n")
 cat("--- 3. Verifying Results ---\n")
 
 # as.matrix() でRの行列に変換
+cat("True b0:\n")
+print(as.matrix(b0_true))
+cat("Estimated b0:\n")
+print(as.matrix(b0$detach()))
+cat("---\n")
+
 cat("True B1:\n")
 print(as.matrix(B1_true))
 cat("Estimated B1:\n")
 print(as.matrix(B1$detach()))
 cat("---\n")
 
-cat("True B2:\n")
-print(as.matrix(B2_true))
-cat("Estimated B2:\n")
-print(as.matrix(B2$detach()))
-cat("---\n")
-
-cat("True B3:\n")
-print(as.matrix(B3_true))
-cat("Estimated B3:\n")
-print(as.matrix(B3$detach()))
+cat("True b2:\n")
+print(as.matrix(b2_true))
+cat("Estimated b2:\n")
+print(as.matrix(b2$detach()))
 cat("---\n")
 
 cat("True Lambda1:\n")
