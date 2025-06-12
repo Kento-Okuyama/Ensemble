@@ -1,13 +1,10 @@
 # 必要なライブラリをインストールしてロード
 # install.packages("torch")
-# install.packages("MASS") # ginv (疑似逆行列) のために使用
 library(torch)
-library(MASS)
 
 ## ----------------------------------------------------------------
 ## Part 1: torch を用いたカルマンフィルターの実装
 ## ----------------------------------------------------------------
-# 提供されたコードを torch 関数で書き換え、自動微分を可能にする
 kalman_filter_torch <- function(Y1, precomputed_eta2, B1, B2, B3, Lambda1, Q, R, eta1_i0_0, P_i0_0) {
   
   # --- 入力テンソルの次元を取得 ---
@@ -201,7 +198,7 @@ cat("Optimization finished.\n\n")
 ## ----------------------------------------------------------------
 cat("--- 3. Verifying Results ---\n")
 
-# detach() で計算グラフから切り離し、cpu() でCPUに転送、as.matrix() でRの行列に変換
+# as.matrix() でRの行列に変換
 cat("True B1:\n")
 print(as.matrix(B1_true))
 cat("Estimated B1:\n")
