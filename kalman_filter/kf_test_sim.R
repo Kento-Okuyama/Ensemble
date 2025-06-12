@@ -90,7 +90,7 @@ cat("--- 1. Generating Simulation Data ---\n")
 # --- シミュレーションの次元を設定 ---
 N <- 50      # 被験者数
 Nt <- 25     # 時間点数
-O1 <- 3      # 観測変数 y1 の次元
+O1 <- 6      # 観測変数 y1 の次元
 O2 <- 2      # 観測変数 y2 の次元 (eta2 の推定に使用)
 L1 <- 2      # 時間可変の潜在変数 eta1 の次元
 L2 <- 2      # 時間不変の潜在変数 eta2 の次元
@@ -99,7 +99,7 @@ L2 <- 2      # 時間不変の潜在変数 eta2 の次元
 B1_true <- torch_tensor(c(0.1, -0.1), dtype = torch_float())$unsqueeze(1)$transpose(1, 2)
 B2_true <- torch_tensor(matrix(c(0.7, 0.1, -0.1, 0.6), L1, L1), dtype = torch_float())
 B3_true <- torch_tensor(matrix(c(0.5, 0.0, 0.2, 0.4), L1, L2), dtype = torch_float())
-Lambda1_true <- torch_tensor(matrix(c(1, 0.8, 0, 0, 1, 0.6), O1, L1, byrow = TRUE), dtype = torch_float())
+Lambda1_true <- torch_tensor(matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 0, 0, 1, 1.2, 0.8), O1, L1, byrow = FALSE), dtype = torch_float())
 
 # ノイズの共分散行列 (簡単のため、既知として扱う)
 Q_true <- torch_eye(L1) * 0.5
@@ -202,23 +202,23 @@ cat("--- 3. Verifying Results ---\n")
 cat("True B1:\n")
 print(as.matrix(B1_true))
 cat("Estimated B1:\n")
-print(as.matrix(B1))
+print(as.matrix(B1$detach()))
 cat("---\n")
 
 cat("True B2:\n")
 print(as.matrix(B2_true))
 cat("Estimated B2:\n")
-print(as.matrix(B2))
+print(as.matrix(B2$detach()))
 cat("---\n")
 
 cat("True B3:\n")
 print(as.matrix(B3_true))
 cat("Estimated B3:\n")
-print(as.matrix(B3))
+print(as.matrix(B3$detach()))
 cat("---\n")
 
 cat("True Lambda1:\n")
 print(as.matrix(Lambda1_true))
 cat("Estimated Lambda1:\n")
-print(as.matrix(Lambda1))
+print(as.matrix(Lambda1$detach()))
 cat("---\n")
