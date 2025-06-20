@@ -1,0 +1,5 @@
+sed -i 's/\r$//' job.sh
+sbatch job.sh
+squeue
+cat job.out
+cat job.err
