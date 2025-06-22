@@ -94,7 +94,7 @@ hyper_grid <- expand.grid(
   stringsAsFactors = FALSE
 )
 
-num_epochs <- 1000 
+num_epochs <- 200 
 num_runs_per_setting <- 1
 
 all_results <- list()
