@@ -1,0 +1,13 @@
+--- 0. Defining Parameters for the 3-to-1 Factor Regime-Switching Model ---
+Using device: cpu
+
+--- 1. Generating Simulation Data from Regime-Switching Model ---
+Simulation data generated.
+
+--- 3/4. Getting Predictions from Expert Models (using true parameters) ---
+
+--- 5. Defining the Prior for Weight Transition ---
+Prior strength set to: 2.5
+
+--- 6. Implementing and Training the BPS Model with Prior ---
+Starting SVI training...

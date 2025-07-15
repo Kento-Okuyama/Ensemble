@@ -1,0 +1,42 @@
+--- 0. Defining Parameters for the 3-to-1 Factor Regime-Switching Model ---
+Using device: cpu
+
+--- 1. Generating Simulation Data from Regime-Switching Model ---
+Simulation data generated.
+
+--- 2. Defining Common Functions ---
+
+
+--- 3. 3-Factor Model Evaluation (using True Parameters) ---
+3-Factor Model Loss (NegLogLike) with true params: 29982.6992
+3-Factor Model RMSE with true params: 1.3720
+
+
+--- 4. 1-Factor Model Evaluation (using True Parameters) ---
+1-Factor Model Loss (NegLogLike) with true params: 30812.8242
+1-Factor Model RMSE with true params: 1.3805
+
+--- 6. Implementing and Training the BPS Model with Pyro ---
+Starting SVI training...
+[iteration 0500] loss: 37179.3565
+[iteration 1000] loss: 38259.0306
+[iteration 1500] loss: 36744.2500
+[iteration 2000] loss: 35777.2482
+SVI training finished.
+
+--- 7. BPS Model RMSE Calculation and Visualization ---
+
+Results plot saved to bps_weights_over_time_true_params.png
+
+
+--- 8. Final Model Fit Comparison ---
+==================================================
+Model                | Loss (Lower is Better)    | RMSE (Lower is Better)   
+--------------------------------------------------
+3-Factor Model       | 29982.6992                | 1.3720                   
+1-Factor Model       | 30812.8242                | 1.3805                   
+BPS Model            | 35777.2482                | 1.3663                   
+==================================================
+
+Note: Loss for 3/1-Factor models is NegLogLikelihood. Loss for BPS is ELBO.
+      These loss types are not directly comparable. RMSE is a directly comparable metric.
