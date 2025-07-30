@@ -1,3 +1,0 @@
-step 0: estimate state-space models (eta) separately 
-step 1: estimate model weights given eta
-(step 2: estimate state-space models (eta) given model weights)

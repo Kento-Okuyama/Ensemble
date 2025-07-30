@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPSモデル: 重み更新メカニズムの解説</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        header {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+        }
+        h1 {
+            font-size: 2em;
+        }
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+        h3 {
+            font-size: 1.2em;
+            color: #0069d9;
+        }
+        code {
+            background-color: #eee;
+            border-radius: 3px;
+            font-family: "Courier New", Courier, monospace;
+            padding: 2px 4px;
+            font-size: 90%;
+        }
+        pre {
+            background-color: #eee;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .equation {
+            display: block;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #e9ecef;
+            border-left: 5px solid #007bff;
+            font-size: 1.1em;
+            overflow-x: auto;
+        }
+        .note {
+            background-color: #fffbe6;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>BPSモデル: 重み更新メカニズムの解説</h1>
+        <p><code>sim_wai_3to1_compare_full_save.py</code>で実装されたBPSモデルの重み（`beta_latent_t`）が、各時間ステップでどのように更新されるかを解説します。</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>中心的な更新式</h2>
+            <p>
+                BPSモデルにおける各時間ステップ \(t\) の重み（のlogit値）である \(\beta_t\) は、正規分布からサンプリングされます。その分布の中心 \(\text{loc}_t\) が、モデルの挙動を決定する最も重要な部分です。
+            </p>
+            <div class="equation">
+                $$ \beta_t \sim \mathcal{N}(\text{loc}_t, \tau_{\beta}^2 I) $$
+            </div>
+            <p>
+                この中心 \(\text{loc}_t\) は、以下の3つの要素の和で構成されています。
+            </p>
+            <div class="equation">
+                $$ \text{loc}_t = \underbrace{\pi_t}_{\text{目標経路}} + \underbrace{\delta_i}_{\text{個人ごとのズレ}} + \underbrace{D(Z_{i,t-1}, \theta_i)}_{\text{データ駆動による補正}} $$
+            </div>
+        </section>
+
+        <section>
+            <h2>更新式の各要素</h2>
+            <p>3つの要素がそれぞれどのような役割を担っているかを見ていきましょう。</p>
+            
+            <hr>
+
+            <h3>1. 目標経路 (\(\pi_t\))</h3>
+            <p>
+                これは、時間と共に変化する、予め定められた「主要な道筋」や「ガイドライン」の役割を果たします。これにより、モデル全体の挙動に強い事前信念を組み込むことができます。
+            </p>
+            <p>コード内では <code>prior_loc_over_time</code> という変数に格納されています。</p>
+            <pre><code># 目標経路の作成
+start_val = 3.0
+end_val = 0.8
+time_vec_3fac = torch.linspace(start_val, -end_val, Nt)
+time_vec_1fac = torch.linspace(-start_val, end_val, Nt)
+prior_loc_over_time = torch.stack([time_vec_3fac, time_vec_1fac], dim=1)</code></pre>
+            <div class="note">
+                <strong>役割:</strong> 重みが時間と共に従うべき大まかなトレンドを定義します。
+            </div>
+
+            <hr>
+
+            <h3>2. 個人ごとのズレ (\(\delta_i\))</h3>
+            <p>
+                これも、各個人 \(i\) が持つ時間を通じて不変な「個性」や「癖」を捉えます。これにより、全員が同じ目標経路を辿るのではなく、個人に最適化された経路を学習できます。
+            </p>
+            <p>コード内では <code>beta_offset</code> という変数に格納されています。</p>
+            <pre><code># 個人ごとの時間不変な「ズレ」
+beta_offset = pyro.sample("beta_offset", dist.Normal(0., 1.).expand([J]).to_event(1))</code></pre>
+            <div class="note">
+                <strong>役割:</strong> 目標経路からの、個人に特化したベースラインのズレを学習します。
+            </div>
+            
+            <hr>
+
+            <h3>3. データ駆動による補正 (\(D(Z_{i,t-1}, \theta_i)\))</h3>
+            <p>
+                一つ前の時点（\(t-1\)）の潜在変数 \(Z_{i,t-1}\) の状態に応じて、目標経路をリアルタイムで「補正」します。これにより、モデルはデータが示す細かな変動に柔軟に対応できます。
+            </p>
+            <p>コード内では <code>data_drift</code> という変数に格納され、主効果と交互作用効果から成ります。</p>
+            <pre><code># データ駆動ドリフト(補正項)の計算
+# 主効果
+drift_main_3fac = (latents1_tm1 * theta_3fac).sum(dim=-1)
+drift_main_1fac = (latents2_tm1 * theta_1fac).sum(dim=-1)
+# 交互作用効果
+interaction_features = latents1_tm1.unsqueeze(2) * latents2_tm1.unsqueeze(1)
+drift_inter_3fac = (interaction_features * theta_inter1).sum(dim=(1, 2))
+drift_inter_1fac = (interaction_features * theta_inter2).sum(dim=(1, 2))
+# 合算
+data_drift = torch.stack([...], dim=-1)</code></pre>
+            <div class="note">
+                <strong>役割:</strong> データが示す最新の証拠に基づいて、目標経路をリアルタイムで微調整します。
+            </div>
+        </section>
+
+        <section>
+            <h2>まとめ</h2>
+            <p>
+                現在のBPSモデルの重み更新メカニズムは、安定性と柔軟性を組み合わせたハイブリッドな構造です。
+            </p>
+            <ul>
+                <li><strong>長期的なトレンド</strong>は、予め設定された「目標経路」によって安定的に誘導されます。</li>
+                <li><strong>個人差</strong>は、「個人ごとのズレ」によって考慮されます。</li>
+                <li><strong>短期的な変動</strong>は、「データ駆動による補正」によって柔軟に捉えられます。</li>
+            </ul>
+            <p>
+                これにより、強力な事前知識を組み込みつつも、データへの追従性を失わない、洗練されたモデルとなっています。
+            </p>
+        </section>
+    </main>
+
+</body>
+</html>

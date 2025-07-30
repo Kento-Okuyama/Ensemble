@@ -1,0 +1,7 @@
+--- 0. Defining Parameters for the 3-to-1 Factor Regime-Switching Model ---
+Using device: cpu
+
+--- 1. Generating Simulation Data from Regime-Switching Model ---
+Simulation data generated.
+
+--- 2. Defining Common Functions ---
