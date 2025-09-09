@@ -1,0 +1,15 @@
+--- 0. Defining Parameters ---
+Using device: cpu
+
+--- 1. Generating Simulation Data ---
+No pre-computed data file found. Generating new simulation data...
+Simulation data generated.
+Saving simulation data to 'simulation_data_rw.pt'...
+Data saving complete.
+
+--- 2. Defining Common Functions ---
+
+--- 3. Estimation of Baseline Models ---
+
+--- 3a. 3-Factor Model ---
+Training 3-Factor model...

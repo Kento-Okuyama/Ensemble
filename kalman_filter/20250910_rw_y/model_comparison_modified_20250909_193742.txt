@@ -1,0 +1,89 @@
+--- 0. Defining Parameters ---
+Using device: cpu
+
+--- 1. Generating Simulation Data ---
+Loading pre-computed simulation data from 'simulation_data_rw.pt'...
+Data loading complete.
+
+--- 2. Defining Common Functions ---
+
+--- 3. Estimation of Baseline Models ---
+
+--- 3a. 3-Factor Model ---
+Training 3-Factor model...
+
+   -> Early stopping triggered at epoch 2845.
+3-Factor model training finished. Duration: 201.22s
+Finished training. Saving best model to 'trained_3fac_model.pt'...
+
+--- 3b. 1-Factor Model ---
+Training 1-Factor model...
+
+   -> Early stopping triggered at epoch 5617.
+1-Factor model training finished. Duration: 655.71s
+Finished training. Saving best model to 'trained_1fac_model.pt'...
+
+--- 4. Defining and Training BPS Random-Walk Model ---
+Pre-calculating inputs for BPS model...
+Pre-calculation complete.
+Starting BPS model training with VI...
+
+   -> Early stopping triggered at step 968.
+BPS model training finished. Duration: 126.01s
+Finished training. Loading best model state from 'trained_bps_guide_params_weighted.pt'...
+
+
+--- 5. Defining and Training the Regime-Switching Kalman Filter Model ---
+Starting RS-KF model training...
+     -> Initializing FRS model with pre-trained baseline parameters.
+     -> Initializing FRS HMM parameters by SAMPLING AROUND TRUE DGP values.
+    -> Early stopping triggered at epoch 6110.
+RS-KF model training finished. Duration: 2820.32s
+Saving RS-KF model results to 'rs_kf_results.pt'...
+
+--- 6. Model Evaluation and Final Comparison ---
+Evaluating BPS model...
+Evaluating RS-KF model...
+     -> Initializing FRS model with pre-trained baseline parameters.
+     -> Initializing FRS HMM parameters by SAMPLING AROUND TRUE DGP values.
+Evaluating Baseline models...
+
+================================================================================================================================
+Model                          | Loss            | RMSE            | Sensitivity     | Specificity     | Duration (s)    |
+--------------------------------------------------------------------------------------------------------------------------------
+3-Factor Model                 | 31023.1113      | 1.5092          | 0.0000          | 1.0000          | 201.22          |
+1-Factor Model                 | 32275.4727      | 1.5494          | 1.0000          | 0.0000          | 655.71          |
+BPS Random Walk                | 367.4725        | 1.4668          | 0.7405          | 0.7414          | 126.01          |
+Regime-Switching KF            | 29683.6270      | 0.8965          | 0.9676          | 0.8156          | 2820.32         |
+Note: Loss for Baseline/RS-KF is NegLogLikelihood. Loss for BPS is ELBO.
+      RMSE, Sensitivity, and Specificity are directly comparable metrics.
+      Duration is 0.00 if model was loaded from cache.
+================================================================================================================================
+
+--- 7. Visualization of Results ---
+
+--- Generating Aggregate Model Comparison Plot ---
+Aggregate model comparison plot saved to model_comparison_plot.png
+
+
+--- 8. Preparing data for individual-level plots ---
+
+--- 8a. Generating posterior samples for BPS model uncertainty ---
+Generated 1000 samples from the posterior distribution of beta.
+Calculated 95% credible intervals for BPS state probabilities.
+
+--- 8b. Generating full-period latent variable trajectories ---
+
+--- 9. Visualization of Individual-level Results for all individuals ---
+
+--- 9a. Generating 4 files for individual regime switch plots with C.I. ---
+Individual switch plot saved to individual_switches_plot_with_ci_part_1.png
+Individual switch plot saved to individual_switches_plot_with_ci_part_2.png
+Individual switch plot saved to individual_switches_plot_with_ci_part_3.png
+Individual switch plot saved to individual_switches_plot_with_ci_part_4.png
+
+--- 9b. Generating 4 files for latent variable plots with uncertainty ---
+Latent variable plot saved to eta_trajectories_filtered_with_ci_part_1.png
+Latent variable plot saved to eta_trajectories_filtered_with_ci_part_2.png
+Latent variable plot saved to eta_trajectories_filtered_with_ci_part_3.png
+Latent variable plot saved to eta_trajectories_filtered_with_ci_part_4.png

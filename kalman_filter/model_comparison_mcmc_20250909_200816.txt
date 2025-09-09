@@ -1,0 +1,31 @@
+--- 0. Defining Parameters ---
+Using device: cpu
+
+--- 1. Generating Simulation Data ---
+No pre-computed data file found. Generating new simulation data...
+Simulation data generated.
+Saving simulation data to 'simulation_data_rw.pt'...
+Data saving complete.
+
+--- 2. Defining Common Functions ---
+
+--- 3. Estimation of Baseline Models ---
+
+--- 3a. 3-Factor Model ---
+Training 3-Factor model...
+
+   -> Early stopping triggered at epoch 2996.
+3-Factor model training finished. Duration: 259.42s
+Finished training. Saving best model to 'trained_3fac_model.pt'...
+
+--- 3b. 1-Factor Model ---
+Training 1-Factor model...
+
+   -> Early stopping triggered at epoch 4292.
+1-Factor model training finished. Duration: 495.90s
+Finished training. Saving best model to 'trained_1fac_model.pt'...
+
+--- 4. Defining and Training BPS Random-Walk Model via MCMC ---
+Pre-calculating inputs for BPS model...
+Pre-calculation complete.
+Starting BPS model training with MCMC...
