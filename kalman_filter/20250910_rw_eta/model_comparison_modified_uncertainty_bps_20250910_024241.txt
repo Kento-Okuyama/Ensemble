@@ -1,0 +1,37 @@
+--- 0. Defining Parameters ---
+Using device: cpu
+
+--- 1. Generating Simulation Data ---
+Loading pre-computed simulation data from 'simulation_data_rw.pt'...
+Data loading complete.
+
+--- 2. Defining Common Functions ---
+
+--- 3. Estimation of Baseline Models ---
+
+--- 3a. 3-Factor Model ---
+Loading pre-trained 3-Factor model from 'trained_3fac_model.pt'...
+
+--- 3b. 1-Factor Model ---
+Loading pre-trained 1-Factor model from 'trained_1fac_model.pt'...
+
+--- 4. Defining and Training BPS Random-Walk Model ---
+Pre-calculating predictive distributions (mean and cov) for BPS model input...
+Pre-calculation complete.
+Starting BPS model training with VI...
+
+   -> Early stopping triggered at step 6133.
+BPS model training finished. Duration: 2540.81s
+Finished training. Loading best model state from 'trained_bps_guide_params_uncertainty.pt'...
+
+
+--- 5. Defining and Training the Regime-Switching Kalman Filter Model ---
+Starting RS-KF model training...
+     -> Initializing FRS model with pre-trained baseline parameters.
+     -> Initializing FRS HMM parameters by SAMPLING AROUND TRUE DGP values.
+    -> Early stopping triggered at epoch 6475.
+RS-KF model training finished. Duration: 3059.23s
+Saving RS-KF model results to 'rs_kf_results.pt'...
+
+--- 6. Model Evaluation and Final Comparison ---
+Evaluating BPS model...

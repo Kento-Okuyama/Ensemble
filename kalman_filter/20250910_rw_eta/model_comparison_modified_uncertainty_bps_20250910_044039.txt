@@ -1,0 +1,55 @@
+--- 0. Defining Parameters ---
+Using device: cpu
+
+--- 1. Generating Simulation Data ---
+Loading pre-computed simulation data from 'simulation_data_rw.pt'...
+Data loading complete.
+
+--- 2. Defining Common Functions ---
+
+--- 3. Estimation of Baseline Models ---
+
+--- 3a. 3-Factor Model ---
+Loading pre-trained 3-Factor model from 'trained_3fac_model.pt'...
+
+--- 3b. 1-Factor Model ---
+Loading pre-trained 1-Factor model from 'trained_1fac_model.pt'...
+
+--- 4. Defining and Training BPS Random-Walk Model ---
+Pre-calculating predictive distributions (mean and cov) for BPS model input...
+Pre-calculation complete.
+Loading pre-trained BPS model guide from 'trained_bps_guide_params_uncertainty.pt'...
+
+
+--- 5. Defining and Training the Regime-Switching Kalman Filter Model ---
+Loading pre-computed RS-KF model results from 'rs_kf_results.pt'...
+
+--- 6. Model Evaluation and Final Comparison ---
+Evaluating BPS model...
+Evaluating RS-KF model...
+     -> Initializing FRS model with pre-trained baseline parameters.
+     -> Initializing FRS HMM parameters by SAMPLING AROUND TRUE DGP values.
+Evaluating Baseline models...
+
+================================================================================================================================
+Model                          | Loss            | RMSE            | Sensitivity     | Specificity     | Duration (s)    |
+--------------------------------------------------------------------------------------------------------------------------------
+3-Factor Model                 | 31020.6250      | 1.4891          | 0.0000          | 1.0000          | 0.00            |
+1-Factor Model                 | 32099.1445      | 1.5376          | 1.0000          | 0.0000          | 0.00            |
+BPS Random Walk (Uncertainty)  | -9999.0000      | 1.4893          | 0.4661          | 0.5123          | 0.00            |
+Regime-Switching KF            | 29785.3516      | 0.9121          | 0.9700          | 0.7925          | 3059.23         |
+Note: Loss for Baseline/RS-KF is NegLogLikelihood. Loss for BPS is ELBO.
+      RMSE, Sensitivity, and Specificity are directly comparable metrics.
+      Duration is 0.00 if model was loaded from cache.
+================================================================================================================================
+
+--- 7. Visualization of Results ---
+
+--- Generating Aggregate Model Comparison Plot ---
+Aggregate model comparison plot saved to model_comparison_plot.png
+
+
+--- 8. Preparing data for individual-level plots ---
+
+--- 8a. Generating posterior samples for BPS model uncertainty ---
+Generated 1000 samples from the posterior distribution of beta.
