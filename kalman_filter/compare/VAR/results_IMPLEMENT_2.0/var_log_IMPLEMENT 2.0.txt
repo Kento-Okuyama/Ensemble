@@ -1,0 +1,83 @@
+Using device: cuda
+Analyzing data from 'IMPLEMENT 2.0' mode.
+All output files will be saved to the 'results_IMPLEMENT_2.0/' directory.
+Loading data from '..\DGP\results_IMPLEMENT_2.0\simulation_data_IMPLEMENT 2.0.pt'...
+Data loaded successfully.
+
+--- 1. Defining Common Kalman Filter Functions ---
+
+
+--- 2. Fitting Models on Full Dataset ---
+Fitting 3-Factor model on the entire dataset...
+Early stopping triggered.
+Full data model for 3-Factor saved to 'results_IMPLEMENT_2.0\fitted_3fac_model_IMPLEMENT 2.0.pt'.
+Fitting 1-Factor model on the entire dataset...
+Early stopping triggered.
+Full data model for 1-Factor saved to 'results_IMPLEMENT_2.0\fitted_1fac_model_IMPLEMENT 2.0.pt'.
+
+Full data model fitting complete.
+
+
+--- 3. Estimated Parameters from Models Fitted on Full Dataset ---
+
+--- 3-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = [ 0.017 -0.002 -0.003], True = [0. 0. 0.]
+
+-- Estimated B1 (State Transition) --
+  [ 0.015 -0.001  0.014]
+  [ 0.005  0.017 -0.001]
+  [-0.011 -0.002  0.015]
+-- True B1 --
+  [ 0.170 -0.060  0.000]
+  [ 0.140  0.210 -0.100]
+  [-0.290 -0.220  0.110]
+
+-- Estimated Q diag (System Noise): --
+  [0.226 0.303 0.193]
+-- True Q diag --
+  [0.5, 0.5, 0.5]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.512 0.498 0.46  0.482 0.479 0.495 0.491 0.522 0.556]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+
+--- 1-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = 0.004000000189989805, True = [0.]
+
+-- Estimated B1 (State Transition): --
+  [[0.007]]
+-- True B1 --
+  [[0.24]]
+
+-- Estimated Q diag (System Noise): --
+  [0.094]
+-- True Q diag --
+  [0.1]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.665 0.761 0.571 0.546 0.554 0.52  0.679 0.819 0.654]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+
+--- 4. Final Model Summaries ---
+
+--- 3-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -16769.03
+Y Prediction RMSE         | 0.8710
+Training Duration (s)     | 173.09
+================================================================================
+
+--- 1-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -17094.98
+Y Prediction RMSE         | 0.8718
+Training Duration (s)     | 308.37
+================================================================================
