@@ -1,0 +1,14 @@
+Using device: cpu (explicitly set for fair comparison)
+Analyzing data from 'IMPLEMENT' mode for realization #3.
+All output files will be saved to the 'results\IMPLEMENT\var_results_run_3/' directory.
+Loading data from 'data\IMPLEMENT\dgp_data_run_3\simulation_data_IMPLEMENT.pt'...
+Data loaded successfully. N=57, Nt=15, O=9.
+
+--- 1. Defining Common Kalman Filter Functions ---
+
+
+--- 2. Fitting Models on Full Dataset ---
+Fitting 3-Factor model on the entire dataset...
+Early stopping triggered.
+Full data model for 3-Factor saved to 'results\IMPLEMENT\var_results_run_3\fitted_3fac_model_IMPLEMENT.pt'.
+Fitting 1-Factor model on the entire dataset...

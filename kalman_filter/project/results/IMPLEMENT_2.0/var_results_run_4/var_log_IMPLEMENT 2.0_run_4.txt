@@ -1,0 +1,89 @@
+Using device: cuda
+Analyzing data from 'IMPLEMENT 2.0' mode for realization #4.
+All output files will be saved to the 'results\IMPLEMENT_2.0\var_results_run_4/' directory.
+Loading data from 'data\IMPLEMENT_2.0\dgp_data_run_4\simulation_data_IMPLEMENT 2.0.pt'...
+Data loaded successfully. N=80, Nt=19, O=9.
+
+--- 1. Defining Common Kalman Filter Functions ---
+
+
+--- 2. Fitting Models on Full Dataset ---
+Full data model for 3-Factor already exists. Loading from 'results\IMPLEMENT_2.0\var_results_run_4\fitted_3fac_model_IMPLEMENT 2.0.pt'...
+Full data model for 1-Factor already exists. Loading from 'results\IMPLEMENT_2.0\var_results_run_4\fitted_1fac_model_IMPLEMENT 2.0.pt'...
+
+Full data model fitting complete.
+
+
+--- 3. Estimated Parameters from Models Fitted on Full Dataset ---
+
+--- 3-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = [-0.005 -0.015  0.035], True = [0. 0. 0.]
+
+-- Estimated B1 (State Transition) --
+  [ 0.018 -0.002  0.010]
+  [ 0.004  0.021 -0.002]
+  [-0.016 -0.003  0.010]
+-- True B1 --
+  [ 0.170 -0.060  0.000]
+  [ 0.140  0.210 -0.100]
+  [-0.290 -0.220  0.110]
+
+-- Estimated Q diag (System Noise): --
+  [0.183 0.29  0.228]
+-- True Q diag --
+  [0.5, 0.5, 0.5]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.554 0.51  0.471 0.494 0.558 0.456 0.504 0.459 0.566]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+-- Estimated Lambda1 free (Factor Loading): --
+  [1.368 0.91  0.9   0.967 1.268 0.755]
+-- True Lambda1 free --
+  [1.2 0.8 1.1 0.9 1.3 0.7]
+
+
+--- 1-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = -0.004000000189989805, True = [0.]
+
+-- Estimated B1 (State Transition): --
+  [[0.006]]
+-- True B1 --
+  [[0.24]]
+
+-- Estimated Q diag (System Noise): --
+  [0.044]
+-- True Q diag --
+  [0.1]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.711 0.803 0.608 0.522 0.595 0.468 0.747 0.847 0.676]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+-- Estimated Lambda1 free (Factor Loading): --
+  [1.392 0.833 2.477 2.165 2.467 0.266 0.494 0.822]
+-- True Lambda1 free --
+  [1.2 0.8 1.1 0.9 1.3 0.7 0.6 1. ]
+
+
+--- 4. Final Model Summaries ---
+
+--- 3-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -16897.73
+Y Prediction RMSE         | 0.8795
+Training Duration (s)     | 114.09
+================================================================================
+
+--- 1-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -17277.81
+Y Prediction RMSE         | 0.8804
+Training Duration (s)     | 135.08
+================================================================================

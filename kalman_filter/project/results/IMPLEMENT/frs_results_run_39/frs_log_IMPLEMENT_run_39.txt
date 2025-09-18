@@ -1,0 +1,58 @@
+Using device: cuda
+Running in 'IMPLEMENT' mode with realization #39.
+All output files will be saved to the 'results\IMPLEMENT\frs_results_run_39/' directory.
+
+--- 1. Loading Data and Pre-trained Baseline Models ---
+Defined true transition parameters locally.
+All necessary files loaded successfully.
+
+--- 2. Defining Regime-Switching Kalman Filter (FRS) Model ---
+Loading cached FRS model from 'results\IMPLEMENT\frs_results_run_39\frs_model_results_IMPLEMENT.pt'...
+
+--- 4. Evaluating Final FRS Model ---
+    -> Initializing state-space params IDENTICALLY to VAR model...
+
+--- FRS Model Performance Summary ---
+====================================================================================================
+Metric                    | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood      | -9302.04
+Y Prediction RMSE         | 0.6594
+State Detection Sensitivity | 0.8804 (Correctly identifying State 2)
+State Detection Specificity | 0.9362 (Correctly identifying State 1)
+Training Duration (s)     | 715.17
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters ---
+NOTE: FRS estimated parameters for p11 are inverted to compare with true parameters for p12.
+  gamma_intercept: Estimated = -2.7405, True = -2.0
+  gamma_task:      Estimated = 1.2073, True = 0.5
+  gamma_goal:      Estimated = 1.1319, True = 0.5
+  gamma_bond:      Estimated = 1.9493, True = 0.5
+
+--- Estimated State-Space Parameters ---
+
+-- Estimated B1 (3-Factor) --
+  [ 0.001  0.001 -0.001]
+  [ 0.003  0.009 -0.002]
+  [ 0.003  0.008  0.002]
+
+-- Estimated B1 (1-Factor) --
+  [[0.248]]
+
+-- Estimated Q diag --
+  [0.453 0.434 0.631 0.17 ]
+
+-- Estimated R diag --
+  [0.47  0.505 0.516 0.513 0.469 0.539 0.444 0.528 0.44 ]
+
+-- Estimated Lambda free (State 1) --
+  [1.001 0.862 1.091 0.872 1.091 0.658]
+
+-- Estimated Lambda free (State 2) --
+  [1.115 0.733 0.929 0.853 1.069 0.639 0.584 0.927]
+
+--- 6. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT\frs_results_run_39\frs_aggregate_plot_IMPLEMENT.png'
+Generating 6 files for individual-level plots...
+Individual-level plots saved.

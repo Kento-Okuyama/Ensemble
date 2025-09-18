@@ -1,0 +1,28 @@
+
+--- 1. Configuring DGP Parameters based on Flückiger et al. (2021) ---
+Set N = 80 participants and Nt = 19 sessions.
+
+--- 2. Generating Simulation Data ---
+Generating new simulation data...
+Simulation data generated.
+Saving simulation data to 'results\IMPLEMENT_2.0\dgp_data_run_11\simulation_data_IMPLEMENT 2.0.pt'...
+Data saving complete.
+
+--- 3. Visualizing DGP Results vs. Paper's Figure 1 ---
+
+✅ Plot saved as 'results\IMPLEMENT_2.0\dgp_data_run_11\dgp_switch_comparison_IMPLEMENT 2.0.png'
+
+--- 4. Calculating Overall State Proportions ---
+
+📊 Analysis for DGP Mode: 'IMPLEMENT 2.0'
+Total Data Points (N x Nt): 1520
+----------------------------------------
+3-Factor State (State 1): 551 points (36.25%)
+1-Factor State (State 2): 969 points (63.75%)
+----------------------------------------
+
+--- 5. Visualizing The Trajectory of Generated Y ---
+
+✅ Y trajectory plot saved as 'results\IMPLEMENT_2.0\dgp_data_run_11\dgp_y_trajectory_IMPLEMENT 2.0.png'
+
+DGP analysis complete. Log saved to 'results\IMPLEMENT_2.0\dgp_data_run_11\dgp_log_IMPLEMENT 2.0_run_11.txt'

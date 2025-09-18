@@ -1,0 +1,44 @@
+--- 0. BPS Model Setup ---
+Using device: cpu
+Running in 'IMPLEMENT' mode for realization #42.
+All output files will be saved to the 'results\IMPLEMENT\bps_results_run_42/' directory.
+
+--- 1. Loading Data and Pre-trained Models ---
+All necessary files loaded successfully.
+
+--- 2. Pre-calculating inputs for BPS model ---
+Pre-calculation complete.
+
+--- 3. Training BPS Model with MCMC ---
+Loading pre-computed BPS MCMC results from 'results\IMPLEMENT\bps_results_run_42\bps_mcmc_results_IMPLEMENT.pt'...
+
+--- 4. Evaluating Final BPS Model (using full posterior) ---
+  -> Calculating evaluation metrics using the full posterior distribution...
+  -> Aggregating results from all samples...
+
+--- BPS Model Performance Summary ---
+====================================================================================================
+Metric                    | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood      | -9432.43 (Averaged over MCMC samples)
+Y Prediction RMSE         | 0.8983
+State Detection Sensitivity | 0.6089 (Correctly identifying State 2)
+State Detection Specificity | 0.9712 (Correctly identifying State 1)
+Training Duration (s)     | 563.85
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters (using Posterior Median) ---
+  gamma_intercept: Estimated = -2.8351, True = -2.0
+  gamma_task:      Estimated = 0.5886, True = 0.5
+  gamma_goal:      Estimated = 1.3969, True = 0.5
+  gamma_bond:      Estimated = 0.4045, True = 0.5
+
+--- 5. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT\bps_results_run_42\bps_aggregate_plot_IMPLEMENT.png'
+Generating 6 files for individual-level plots...
+Individual-level plots saved.
+Individual-level plots saved.
+Individual-level plots saved.
+Individual-level plots saved.
+Individual-level plots saved.
+Individual-level plots saved.
