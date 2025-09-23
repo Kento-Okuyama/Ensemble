@@ -1,0 +1,55 @@
+--- 0. BPS Model Setup ---
+Using device: cpu (explicitly set for fair comparison)
+Running in 'IMPLEMENT 2.0' mode for realization #5.
+All output files will be saved to the 'results\IMPLEMENT_2.0\bps_results_run_5/' directory.
+
+--- 1. Loading Data and Pre-trained Models ---
+All necessary files loaded successfully.
+
+--- 2. Pre-calculating inputs for BPS model ---
+Pre-calculation complete.
+
+--- 3. Training BPS Model with MCMC ---
+Starting BPS model inference with MCMC (NUTS)...
+MCMC finished. Duration: 71.72s
+
+--- MCMC Convergence Diagnostics (R-hat) ---
+
+                       mean       std    median      5.0%     95.0%     n_eff     r_hat
+  gamma_coeffs[0]      0.70      0.37      0.71      0.10      1.31   1898.32      1.00
+  gamma_coeffs[1]      0.28      0.35      0.28     -0.26      0.87   1778.87      1.00
+  gamma_coeffs[2]      0.37      0.33      0.37     -0.13      0.95   2050.72      1.00
+  gamma_intercept     -2.39      0.16     -2.39     -2.65     -2.11   1653.77      1.00
+
+Number of divergences: 0
+Saving BPS MCMC results to 'results\IMPLEMENT_2.0\bps_results_run_5\bps_mcmc_results_IMPLEMENT 2.0.pt'...
+Saving complete.
+
+--- 4. Evaluating Final BPS Model (using full posterior) ---
+  -> Calculating evaluation metrics using the full posterior distribution...
+  -> Calculating posterior mode of state probabilities using KDE...
+
+--- BPS Model Performance Summary ---
+====================================================================================================
+Metric                         | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood           | -16542.13 (Averaged over MCMC samples)
+Y Prediction RMSE (Median)     | 0.8628
+Y Prediction RMSE (Mode)       | 0.8628
+State Detection Sensitivity    | 0.7177 (Correctly identifying State 2)
+State Detection Specificity    | 0.9448 (Correctly identifying State 1)
+Training Duration (s)          | 71.72
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters (using Posterior Median) ---
+  gamma_intercept: Estimated = -2.3856, True = -2.0
+  gamma_task:      Estimated = 0.7142, True = 0.5
+  gamma_goal:      Estimated = 0.2822, True = 0.5
+  gamma_bond:      Estimated = 0.3669, True = 0.5
+
+--- 5. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT_2.0\bps_results_run_5\bps_aggregate_plot_IMPLEMENT 2.0.png'
+Generating 8 files for individual-level plots with uncertainty bands...
+Individual-level plots saved.
+
+BPS analysis complete. Log saved to 'results\IMPLEMENT_2.0\bps_results_run_5\bps_log_IMPLEMENT 2.0_run_5.txt'

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRSおよびBPSアルゴリズムの数学的定式化（簡易版）</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        h1, h2, h3 {
+            color: #005a9c;
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 5px;
+        }
+        h1 {
+            text-align: center;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .container {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #005a9c;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>FRSおよびBPSアルゴリズムの数学的定式化（簡易版）</h1>
+
+    <p>
+        本文書は、<strong>Frequentist Regime-Switching (FRS)</strong>モデルと<strong>Bayesian Predictive Synthesis (BPS)</strong>モデルという、二つの先進的な時系列モデルについて数学的な詳細を記述します。両アルゴリズムは、有限個の潜在的な構造（レジームまたは状態）間を遷移する動的システムを分析するために設計されています。これらのモデルの重要な革新は、レジーム間の遷移確率がシステム自身の観測されない潜在状態変数の関数となることを許容する点にあります。
+    </p>
+
+    <h2>1. The Frequentist Regime-Switching (FRS) Model</h2>
+
+    <h3>1.1. モデル概要</h3>
+    <p>
+        FRSモデルは、キム・フィルターとしても知られる<strong>レジームスイッチング・カルマンフィルター</strong>を直接実装したものです。これは複数の線形状態空間モデルを単一のフレームワークに統合します。システムは、観測されない離散的な状態変数 $S_t$ の時間発展に基づいてこれらのモデル間を遷移します。この実装では、全ての状態空間パラメータと状態遷移を司るパラメータが、最尤法によって同時に推定されます。
+    </p>
+
+    <h3>1.2. 状態空間表現</h3>
+    <p>
+        モデルの基本的な状態空間構造は以前のバージョンと同様です。観測データ $y_{i,t}$ は、潜在状態 $\eta_{i,t}$ によって生成されると仮定されます。
+    </p>
+    <ul>
+        <li>
+            <strong>状態方程式:</strong> 潜在因子の時間発展は、1次のベクトル自己回帰（VAR）プロセスに従います。
+            $$ \eta_{i,t} = B \eta_{i,t-1} + \nu_{i,t}, \quad \nu_{i,t} \sim N(0, Q) $$
+        </li>
+        <li>
+            <strong>観測方程式:</strong> 観測データは潜在状態の線形射影であり、射影行列 $\Lambda$ は現在のレジーム $S_{i,t}$ に依存します。
+            $$ y_{i,t} = \Lambda(S_{i,t}) \eta_{i,t} + \epsilon_{i,t}, \quad \epsilon_{i,t} \sim N(0, R) $$
+        </li>
+    </ul>
+
+    <h3>1.3. 状態依存の遷移確率</h3>
+    <p>
+        このバージョンのFRSモデルにおける最も重要な変更点は、遷移確率の計算方法です。このモデルでは、遷移確率は直前の潜在状態の**点推定値** $\hat{\eta}_{i,t-1|t-1}$ のみに依存し、その不確実性（共分散 $P_{i,t-1|t-1}$）は<strong>考慮されません</strong>。
+    </p>
+    <p>
+        状態1から状態2への遷移確率 $p_{12,t}$ は、<strong>ロジスティック（シグモイド）関数</strong>を用いてモデル化されます。
+        $$ z_{i,t-1} = \gamma_{intercept} + \gamma_{coeffs}' \hat{\eta}_{i,t-1|t-1}^{(1)} $$
+        $$ p_{12,t} = \text{sigmoid}(z_{i,t-1}) = \frac{1}{1 + e^{-z_{i,t-1}}} $$
+        ここで、$\hat{\eta}_{i,t-1|t-1}^{(1)}$ はフィルターによって計算された潜在状態の点推定値（平均値）です。以前のバージョンで用いられていたプロビット関数や解析的近似は、この簡易版では使用されていません。
+    </p>
+    
+    <h3>1.4. フィルタリングと推定</h3>
+    <p>
+        基本的なフィルタリングの枠組みはキム・フィルターのままです。予測、更新、縮退の各ステップは以前と同様に実行されますが、遷移確率行列を計算する際には上記の簡略化されたロジスティック関数が用いられます。全てのモデルパラメータ $\Theta = \{B, Q, R, \Lambda(1), \Lambda(2), \gamma\}$ は、観測データの対数尤度を最大化することによって推定されます。
+    </p>
+
+
+    <h2>2. The Bayesian Predictive Synthesis (BPS) Model</h2>
+
+    <h3>2.1. モデル概要</h3>
+    <p>
+        BPSモデルも同様に、2段階のプロセスで動作します。最初に、二つの独立した状態空間モデルがデータに適合され、その結果が第2ステージへの入力として使用されます。
+    </p>
+    
+    <h3>2.2. Stage 1: ベースラインモデルの事前学習</h3>
+    <p>
+        3因子モデル（$M_1$）と1因子モデル（$M_2$）が個別に推定されます。このステージでは、各モデルのパラメータ、1期先予測尤度、そしてスイッチング確率の予測子として使用される<strong>潜在状態の点推定値</strong> $\{\hat{\eta}_{i,t|t}^{(1)}\}_{t=1}^T$ が計算され、固定されます。
+    </p>
+
+    <h3>2.3. Stage 2: 遷移確率のベイジアン推論</h3>
+    <p>
+        FRSモデルと同様に、このBPSモデルのバージョンも遷移確率の計算が簡略化されています。遷移を司るパラメータ $\gamma$ の事後分布を推論する際、潜在状態 $\eta$ の不確実性は<strong>考慮されません</strong>。
+    </p>
+    <p>
+    遷移確率は、ステージ1で事前計算された潜在状態の点推定値 $\hat{\eta}_{i,t-1|t}^{(1)}$ を入力とする<strong>ロジスティック（シグモイド）関数</strong>によってモデル化されます。
+        $$ z_{i,t-1} = \gamma_{intercept} + \gamma_{coeffs}' \hat{\eta}_{i,t-1|t}^{(1)} $$
+        $$ p_{12,t} = \text{sigmoid}(z_{i,t-1}) = \frac{1}{1 + e^{-z_{i,t-1}}} $$
+    MCMCの各ステップで、サンプリングされた $\gamma$ と固定された $\hat{\eta}$ を用いて、この式に基づき状態確率が計算され、モデルの尤度が評価されます。
+    </p>
+
+    <h3>2.4. 推定と予測</h3>
+    <p>
+        遷移パラメータ $\gamma$ の事後分布は、MCMC（NUTSアルゴリズム）を用いてサンプリングされます。得られた各 $\gamma$ のサンプルに対して状態確率の軌跡が計算され、それらを集計することで最終的な中央値や信用区間が求められます。
+    </p>
+
+    <h2>3. 主なアルゴリズム上の違い</h2>
+    <p>
+        この簡易版におけるFRSとBPSの主な違いは以下の通りです。
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>観点</th>
+                <th>Frequentist Regime-Switching (FRS)</th>
+                <th>Bayesian Predictive Synthesis (BPS)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>推定パラダイム</strong></td>
+                <td>頻度論（最尤推定）</td>
+                <td>ベイジアン（MCMCサンプリング）</td>
+            </tr>
+            <tr>
+                <td><strong>潜在状態`η`の不確実性</strong></td>
+                <td><strong>無視される。</strong> 遷移確率の計算には点推定値 $\hat{\eta}$ のみ使用。</td>
+                <td><strong>無視される。</strong> 遷移確率の計算には点推定値 $\hat{\eta}$ のみ使用。</td>
+            </tr>
+            <tr>
+                <td><strong>遷移確率関数</strong></td>
+                <td>ロジスティック（シグモイド）関数</td>
+                <td>ロジスティック（シグモイド）関数</td>
+            </tr>
+            <tr>
+                <td><strong>出力</strong></td>
+                <td>単一の<strong>点推定値</strong>。状態確率の軌跡は1本の線として得られる。</td>
+                <td>遷移パラメータ $\gamma$ の<strong>事後分布</strong>。状態確率の軌跡は中央値と信用区間を持つ分布として得られる。</td>
+            </tr>
+            <tr>
+                <td><strong>不確実性の定量化</strong></td>
+                <td><strong>行われない。</strong> `γ` と `η` のいずれの不確実性も最終的な出力には反映されない。</td>
+                <td><strong>`γ`の不確実性のみ反映される。</strong> 信用区間は、遷移パラメータ `γ` が取りうる値の幅を示すが、`η` の不確かさは含まない。</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

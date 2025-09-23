@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRSおよびBPSアルゴリズムの数学的定式化</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        h1, h2, h3 {
+            color: #005a9c;
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 5px;
+        }
+        h1 {
+            text-align: center;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .container {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #005a9c;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>FRSおよびBPSアルゴリズムの数学的定式化</h1>
+
+    <p>
+        本文書は、<strong>Frequentist Regime-Switching (FRS)</strong>モデルと<strong>Bayesian Predictive Synthesis (BPS)</strong>モデルという、二つの先進的な時系列モデルについて数学的な詳細を記述します。両アルゴリズムは、有限個の潜在的な構造（レジームまたは状態）間を遷移する動的システムを分析するために設計されています。これらのモデルの重要な革新は、レジーム間の遷移確率がシステム自身の観測されない潜在状態変数の関数となることを許容する点にあります。
+    </p>
+
+    <h2>1. The Frequentist Regime-Switching (FRS) Model</h2>
+
+    <h3>1.1. モデル概要</h3>
+    <p>
+        FRSモデルは、キム・フィルターとしても知られる<strong>レジームスイッチング・カルマンフィルター</strong>を直接実装したものです。これは複数の線形状態空間モデルを単一のフレームワークに統合します。システムは、観測されない離散的な状態変数 $S_t$ の時間発展に基づいてこれらのモデル間を遷移します。この実装では、全ての状態空間パラメータと状態遷移を司るパラメータが、最尤法によって同時に推定されます。
+    </p>
+
+    <h3>1.2. 状態空間表現</h3>
+    <p>
+        モデルは、各個人 $i$ の時刻 $t$ における観測データベクトル $y_{i,t}$（$O$次元）が、潜在的な状態ベクトル $\eta_{i,t}$（$L$次元）によって生成されると仮定します。システムは二つの状態 $S_{i,t} \in \{1, 2\}$ のいずれかを取り、これらはそれぞれ3因子モデル（状態1）と1因子モデル（状態2）に対応します。
+    </p>
+    <p>
+        状態ベクトル $\eta_{i,t}$ は両モデルの潜在因子を結合したもので、$\eta_{i,t} = [\eta_{i,t}^{(1)'}, \eta_{i,t}^{(2)'}]'$ となります。ここで $\eta^{(1)}$ は3次元、$\eta^{(2)}$ は1次元であり、結果として $L=4$ となります。
+    </p>
+    <ul>
+        <li>
+            <strong>状態方程式:</strong> 潜在因子の時間発展は、レジーム間で共通と仮定される1次のベクトル自己回帰（VAR）プロセスに従います。
+            $$ \eta_{i,t} = B \eta_{i,t-1} + \nu_{i,t}, \quad \nu_{i,t} \sim N(0, Q) $$
+            ここで $B$ は $L \times L$ の遷移行列（ブロック対角と仮定）、$Q$ は $L \times L$ の状態ノイズの共分散行列です。
+        </li>
+        <li>
+            <strong>観測方程式:</strong> 観測データは潜在状態の線形射影ですが、射影行列 $\Lambda$ は現在のレジーム $S_{i,t}$ に依存します。
+            $$ y_{i,t} = \Lambda(S_{i,t}) \eta_{i,t} + \epsilon_{i,t}, \quad \epsilon_{i,t} \sim N(0, R) $$
+            ここで $\Lambda(S_{i,t})$ は活動中のレジームに対する $O \times L$ の負荷行列、 $R$ は $O \times O$ の観測ノイズの共分散行列です。
+        </li>
+    </ul>
+
+    <h3>1.3. 状態依存の遷移確率</h3>
+    <p>
+        FRSモデルの核心は、レジーム遷移確率が一定ではなく、直前の潜在状態 $\eta_{i,t-1}$ に依存する点です。遷移確率は $p_{jk,t} = P(S_{i,t}=k | S_{i,t-1}=j, \eta_{i,t-1})$ と定義されます。
+    </p>
+    <p>
+        この実装では、状態2は吸収状態です（$p_{21}=0, p_{22}=1$）。状態1から状態2への遷移確率 $p_{12,t}$ は、状態1の潜在因子 $\eta_{i,t-1}^{(1)}$ の線形結合を入力とするプロビット・リンク関数を介してモデル化されます。
+        $$ z_{i,t-1} = \gamma_{intercept} + \gamma_{coeffs}' \eta_{i,t-1}^{(1)} $$
+        $$ p_{12,t} = P(S_{i,t}=2 | S_{i,t-1}=1, \eta_{i,t-1}) = \Phi(z_{i,t-1}) $$
+        ここで $\Phi(\cdot)$ は標準正規分布の累積分布関数（CDF）です。
+    </p>
+    <p>
+        潜在状態 $\eta_{i,t-1}$ は未知であり、その不確実性を考慮する必要があります。$\hat{\eta}_{i,t-1|t-1}$ を時刻 $t-1$ における状態のフィルター化された推定値、その共分散を $P_{i,t-1|t-1}$ とします。$z_{i,t-1}$ の平均と分散は次のようになります。
+        $$ \mu_{z,t-1} = E[z_{i,t-1} | Y_{1:t-1}] = \gamma_{intercept} + \gamma_{coeffs}' \hat{\eta}_{i,t-1|t-1}^{(1)} $$
+        $$ \sigma^2_{z,t-1} = Var(z_{i,t-1} | Y_{1:t-1}) = \gamma_{coeffs}' P_{i,t-1|t-1}^{(11)} \gamma_{coeffs} $$
+        コードでは、この $\eta$ の分布（不確実性）を考慮した遷移確率の<strong>期待値</strong>を、解析的近似を用いて計算します。
+        $$ E[p_{12,t}] \approx \Phi\left(\frac{\kappa \mu_{z,t-1}}{\sqrt{1 + \kappa^2 \sigma^2_{z,t-1}}}\right) $$
+        ここで $\kappa = \sqrt{\pi/8}$ です。この操作により、$\eta$ の分布情報は<strong>単一の点推定値に集約</strong>され、各時間ステップの遷移確率行列を形成するために使用されます。
+    </p>
+    
+    <h3>1.4. フィルタリング・アルゴリズム（キム・フィルター）</h3>
+    <p>
+        フィルターは、潜在状態の推定値と各レジームにいる確率を再帰的に計算します。$\hat{P}(S_{i,t-1}=j|Y_{1:t-1})$ を前ステップで得られたフィルター化レジーム確率とすると、フィルターは各時刻 $t$ で以下のように進行します。
+    </p>
+    <ol>
+        <li><strong>予測ステップ:</strong>
+            <ul>
+                <li>潜在状態とその共分散を予測します。
+                    $$ \hat{\eta}_{i,t|t-1} = B \hat{\eta}_{i,t-1|t-1} $$
+                    $$ P_{i,t|t-1} = B P_{i,t-1|t-1} B' + Q $$
+                </li>
+                <li>遷移確率行列 $P_t$（期待値を含む）を用いてレジーム確率を予測します。
+                    $$ \hat{P}(S_{i,t}=k|Y_{1:t-1}) = \sum_{j=1}^{2} p_{jk,t} \cdot \hat{P}(S_{i,t-1}=j|Y_{1:t-1}) $$
+                </li>
+            </ul>
+        </li>
+        <li><strong>更新ステップ:</strong>
+            <ul>
+                <li>各レジーム $k \in \{1, 2\}$ について、観測値 $y_{i,t}$ の尤度を計算します。
+                    $$ f(y_{i,t}|S_{i,t}=k, Y_{1:t-1}) = N(y_{i,t}; \Lambda(k)\hat{\eta}_{i,t|t-1}, \Lambda(k)P_{i,t|t-1}\Lambda(k)'+R) $$
+                </li>
+                <li>ベイズの定理を用いてレジーム確率を更新します。
+                    $$ \hat{P}(S_{i,t}=k|Y_{1:t}) = \frac{f(y_{i,t}|S_{i,t}=k, Y_{1:t-1}) \cdot \hat{P}(S_{i,t}=k|Y_{1:t-1})}{\sum_{j=1}^{2} f(y_{i,t}|S_{i,t}=j, Y_{1:t-1}) \cdot \hat{P}(S_{i,t}=j|Y_{1:t-1})} $$
+                </li>
+                <li>各レジーム $k$ について、カルマンゲイン $K_{i,t}^{(k)}$ を用いて状態と共分散を更新します。
+                    $$ \hat{\eta}_{i,t|t}^{(k)} = \hat{\eta}_{i,t|t-1} + K_{i,t}^{(k)} (y_{i,t} - \Lambda(k)\hat{\eta}_{i,t|t-1}) $$
+                    $$ P_{i,t|t}^{(k)} = (I - K_{i,t}^{(k)}\Lambda(k)) P_{i,t|t-1} $$
+                </li>
+            </ul>
+        </li>
+        <li><strong>縮退（Collapse）ステップ:</strong>
+            <ul>
+                <li>レジームごとの推定値を結合し、単一のフィルター化状態と共分散を求めます。
+                    $$ \hat{\eta}_{i,t|t} = \sum_{k=1}^{2} \hat{P}(S_{i,t}=k|Y_{1:t}) \cdot \hat{\eta}_{i,t|t}^{(k)} $$
+                    $$ P_{i,t|t} = \sum_{k=1}^{2} \hat{P}(S_{i,t}=k|Y_{1:t}) \left[ P_{i,t|t}^{(k)} + (\hat{\eta}_{i,t|t}^{(k)} - \hat{\eta}_{i,t|t})(\hat{\eta}_{i,t|t}^{(k)} - \hat{\eta}_{i,t|t})' \right] $$
+                </li>
+            </ul>
+        </li>
+    </ol>
+    
+    <h3>1.5. 推定</h3>
+    <p>
+        全てのモデルパラメータ集合 $\Theta = \{B, Q, R, \Lambda(1), \Lambda(2), \gamma_{intercept}, \gamma_{coeffs}\}$ は、観測データの対数尤度を最大化することによって推定されます。総対数尤度は、フィルターの更新ステップの副産物として得られる各時刻の対数周辺尤度の合計です。
+        $$ \mathcal{L}(Y|\Theta) = \sum_{i=1}^{N} \sum_{t=1}^{T} \log \left( \sum_{k=1}^{2} f(y_{i,t}|S_{i,t}=k, Y_{1:t-1}) \cdot \hat{P}(S_{i,t}=k|Y_{1:t-1}) \right) $$
+        この最適化は勾配ベースの手法（Adam）によって実行されます。
+    </p>
+
+
+    <h2>2. The Bayesian Predictive Synthesis (BPS) Model</h2>
+
+    <h3>2.1. モデル概要</h3>
+    <p>
+        BPSモデルは、状態空間フレームワークに適用されたベイジアン・モデル・アベレージング技術です。これは2段階のプロセスで動作します。最初に、二つの独立した標準的な状態空間モデルがデータに適合されます。次に、ベイジアンモデルを用いて、システムが一方のモデルによって記述される時間変動確率を推定します。このアプローチは、状態空間ダイナミクスの推定とスイッチングダイナミクスの推定を分離します。
+    </p>
+    
+    <h3>2.2. Stage 1: ベースラインモデルの事前学習</h3>
+    <p>
+        3因子モデル（$M_1$）と1因子モデル（$M_2$）という二つの独立した状態空間モデルが、標準的な手法（例：EMアルゴリズムによる最尤推定や直接最適化）を用いて個別に推定されます。このステージで以下が得られます。
+    </p>
+    <ul>
+        <li>各モデルの固定されたパラメータセット: $\Theta_1 = \{B_1, Q_1, R_1, \Lambda_1\}$ と $\Theta_2 = \{B_2, Q_2, R_2, \Lambda_2\}$。</li>
+        <li>各個人 $i$、時刻 $t$ における、各モデル下での観測値の1期先予測尤度: $f(y_{i,t}|Y_{1:t-1}, M_1)$ と $f(y_{i,t}|Y_{1:t-1}, M_2)$。これらは各モデルに対して標準的なカルマンフィルターを用いて事前計算されます。</li>
+        <li>3因子モデル（$M_1$）から得られるフィルター化された潜在状態 $\{\hat{\eta}_{i,t|t}^{(1)}, P_{i,t|t}^{(1)}\}_{t=1}^T$。これはスイッチング確率の予測子として使用されます。</li>
+    </ul>
+    <p>
+        これらの量は、第2ステージへの固定された既知の入力として扱われます。
+    </p>
+
+    <h3>2.3. Stage 2: 遷移確率のベイジアン推論</h3>
+    <p>
+        このステージの目的は、$M_1$と$M_2$間の遷移を司るパラメータ $\gamma = \{\gamma_{intercept}, \gamma_{coeffs}\}$ の事後分布を推論することです。
+    </p>
+    <ul>
+        <li>
+            <strong>遷移確率:</strong> このモデルはFRSと全く同じ状態依存の遷移メカニズムを用います。つまり、モデル1からモデル2への遷移確率は、モデル1の潜在状態に依存します。
+            $$ E[p_{12,t}] \approx \Phi\left(\frac{\kappa (\gamma_{intercept} + \gamma_{coeffs}' \hat{\eta}_{i,t-1|t-1}^{(1)})}{\sqrt{1 + \kappa^2 (\gamma_{coeffs}' P_{i,t-1|t-1}^{(11)} \gamma_{coeffs})}}\right) $$
+        </li>
+        <li>
+            <strong>モデル尤度:</strong> $\pi_{i,t,2} = P(S_{i,t}=2|Y_{1:t-1}, \gamma)$ を時刻 $t$ で状態2にいる予測確率とすると、これは次のように時間発展します。
+            $$ \pi_{i,t,2} = \pi_{i,t-1,2} \cdot p_{22} + (1-\pi_{i,t-1,2}) \cdot p_{12,t} $$
+            観測値 $y_{i,t}$ の尤度は、ステージ1で事前計算された尤度を、予測された状態確率で重み付けした混合分布となります。
+            $$ f(y_{i,t}|Y_{1:t-1}, \gamma) = (1 - \pi_{i,t,2}) \cdot f(y_{i,t}|Y_{1:t-1}, M_1) + \pi_{i,t,2} \cdot f(y_{i,t}|Y_{1:t-1}, M_2) $$
+        </li>
+        <li>
+            <strong>ベイジアンモデル:</strong> 遷移パラメータに事前分布を設定します。
+            $$ \gamma_{intercept} \sim N(\mu_0, \sigma_0^2) $$
+            $$ \gamma_{coeffs} \sim N(\mu_c, \Sigma_c) $$
+            事後分布はベイズの定理によって与えられます。
+            $$ p(\gamma | Y) \propto \left( \prod_{i=1}^{N} \prod_{t=1}^{T} f(y_{i,t}|Y_{1:t-1}, \gamma) \right) \cdot p(\gamma) $$
+        </li>
+    </ul>
+
+    <h3>2.4. 推定と予測</h3>
+    <p>
+        事後分布 $p(\gamma|Y)$ は解析的に解けないため、マルコフ連鎖モンテカルロ法（MCMC）、特にNo-U-Turn Sampler (NUTS) を用いてサンプルを生成することで近似します。
+    </p>
+    <p>
+        このプロセスにより、事後分布からのサンプルセット $\{\gamma^{(s)}\}_{s=1}^S$ が得られます。各サンプル $\gamma^{(s)}$ に対して、状態確率の完全な軌跡 $\{\pi_{i,t,2}^{(s)}\}_{t=1}^T$ が計算できます。最終的な出力はこれらの軌跡の分布であり、ここから各時点の状態確率の中央値、最頻値、信用区間を計算できます。これにより、不確実性の自然で頑健な定量化が提供されます。
+    </p>
+
+    <h2>3. 主なアルゴリズム上の違い</h2>
+    <p>
+        FRSとBPSは、状態依存遷移に関して類似した概念モデルを共有しますが、その推定と推論の哲学において根本的に異なります。
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>観点</th>
+                <th>Frequentist Regime-Switching (FRS)</th>
+                <th>Bayesian Predictive Synthesis (BPS)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>推定パラダイム</strong></td>
+                <td>頻度論（最尤推定）</td>
+                <td>ベイジアン（MCMCサンプリング）</td>
+            </tr>
+            <tr>
+                <td><strong>パラメータの扱い</strong></td>
+                <td>全ての状態空間パラメータと遷移パラメータを単一の統合モデルで同時に推定する。</td>
+                <td>2段階アプローチ：状態空間モデルを先に適合させてパラメータを固定し、第2段階で遷移パラメータのみを推定する。</td>
+            </tr>
+            <tr>
+                <td><strong>出力</strong></td>
+                <td>モデルパラメータと状態確率の軌跡に関する単一の<strong>点推定値</strong>を提供する。</td>
+                <td>遷移パラメータの完全な<strong>事後分布</strong>を提供し、状態確率の分布（中央値、信用区間）を導出する。</td>
+            </tr>
+            <tr>
+                <td><strong>不確実性の定量化</strong></td>
+                <td><strong>本質的な出力ではない。</strong> 状態確率 $\pi$ は点推定値。信頼区間は、<strong>事後的（post-hoc）</strong>に、固定されたパラメータの条件下で潜在状態 $\eta$ の不確実性のみをシミュレーションして近似される。</td>
+                <td><strong>本質的な出力である。</strong> 状態確率 $\pi$ の信用区間は、遷移パラメータ $\gamma$ の不確実性（事後分布）と潜在状態 $\eta$ の不確実性の<strong>両方</strong>を反映して自然に得られる。</td>
+            </tr>
+            <tr>
+                <td><strong>計算コスト</strong></td>
+                <td>勾配ベースの最適化に依存するため、一般的に高速。</td>
+                <td>MCMCサンプリングの反復的な性質のため、著しく低速。</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

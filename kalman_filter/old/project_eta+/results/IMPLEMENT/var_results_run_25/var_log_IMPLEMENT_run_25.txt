@@ -1,0 +1,95 @@
+Using device: cpu (explicitly set for fair comparison)
+Analyzing data from 'IMPLEMENT' mode for realization #25.
+All output files will be saved to the 'results\IMPLEMENT\var_results_run_25/' directory.
+Loading data from 'data\IMPLEMENT\dgp_data_run_25\simulation_data_IMPLEMENT.pt'...
+Data loaded successfully. N=57, Nt=15, O=9.
+
+--- 1. Defining Common Kalman Filter Functions ---
+
+
+--- 2. Fitting Models on Full Dataset ---
+Fitting 3-Factor model on the entire dataset...
+Early stopping triggered.
+  -> Calculating final state estimates and covariances for 3-Factor...
+Full data model for 3-Factor saved to 'results\IMPLEMENT\var_results_run_25\fitted_3fac_model_IMPLEMENT.pt'.
+Fitting 1-Factor model on the entire dataset...
+Early stopping triggered.
+  -> Calculating final state estimates and covariances for 1-Factor...
+Full data model for 1-Factor saved to 'results\IMPLEMENT\var_results_run_25\fitted_1fac_model_IMPLEMENT.pt'.
+
+Full data model fitting complete.
+
+
+--- 3. Estimated Parameters from Models Fitted on Full Dataset ---
+
+--- 3-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = [0.208 0.143 0.112], True = [0. 0. 0.]
+
+-- Estimated B1 (State Transition) --
+  [ 0.207  0.189  0.187]
+  [ 0.205  0.205  0.223]
+  [ 0.312  0.265  0.316]
+-- True B1 --
+  [ 0.040  0.010 -0.110]
+  [-0.010  0.070  0.130]
+  [ 0.020  0.110  0.160]
+
+-- Estimated Q diag (System Noise): --
+  [0.29  0.241 0.283]
+-- True Q diag --
+  [0.5, 0.5, 0.5]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.509 0.543 0.533 0.519 0.541 0.48  0.458 0.614 0.489]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+-- Estimated Lambda1 free (Factor Loading): --
+  [1.135 0.717 1.094 1.003 1.151 0.674]
+-- True Lambda1 free --
+  [1.2 0.8 1.1 0.9 1.3 0.7]
+
+
+--- 1-Factor Model Estimated vs. True Parameters ---
+  b0 (Intercept): Estimated = 0.17100000381469727, True = 0.3700000047683716
+
+-- Estimated B1 (State Transition): --
+  [[0.644]]
+-- True B1 --
+  [[0.5]]
+
+-- Estimated Q diag (System Noise): --
+  [0.121]
+-- True Q diag --
+  [0.1]
+
+-- Estimated R diag (Measurement Noise): --
+  [0.677 0.805 0.634 0.687 0.716 0.644 0.651 0.859 0.587]
+-- True R diag --
+  [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+-- Estimated Lambda1 free (Factor Loading): --
+  [1.308 0.69  0.793 1.161 1.007 1.133 1.234 0.608]
+-- True Lambda1 free --
+  [1.2 0.8 1.  1.1 0.9 1.  1.3 0.7]
+
+
+--- 4. Final Model Summaries ---
+
+--- 3-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -9840.41
+Y Prediction RMSE         | 0.9172
+Training Duration (s)     | 55.74
+================================================================================
+
+--- 1-Factor Model Performance Summary ---
+================================================================================
+Metric                    | Value
+--------------------------------------------------------------------------------
+Final Log-Likelihood      | -10135.43
+Y Prediction RMSE         | 0.9192
+Training Duration (s)     | 34.19
+================================================================================

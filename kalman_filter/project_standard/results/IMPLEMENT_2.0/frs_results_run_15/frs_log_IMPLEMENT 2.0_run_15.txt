@@ -1,0 +1,71 @@
+Using device: cpu (explicitly set for fair comparison)
+Running in 'IMPLEMENT 2.0' mode with realization #15.
+All output files will be saved to the 'results\IMPLEMENT_2.0\frs_results_run_15/' directory.
+
+--- 1. Loading Data and Pre-trained Baseline Models ---
+Defined true transition parameters locally.
+All necessary files loaded successfully.
+
+--- 2. Defining Regime-Switching Kalman Filter (Mixture) Model ---
+    -> Defining initial parameters for Mixture Model based on DGP true values + noise (to mirror var.py's initialization)...
+Loading cached Mixture model from 'results\IMPLEMENT_2.0\frs_results_run_15\frs_model_results_IMPLEMENT 2.0.pt'...
+
+--- 4. Evaluating Final Mixture Model ---
+    -> Initializing state-space params IDENTICALLY to VAR model...
+
+--- Mixture Modeling Performance Summary ---
+====================================================================================================
+Metric                    | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood      | -16579.54
+Y Prediction RMSE         | 0.6616
+State Detection Sensitivity | 0.9371 (Correctly identifying State 2)
+State Detection Specificity | 0.9111 (Correctly identifying State 1)
+Training Duration (s)     | 573.48
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters ---
+NOTE: Mixture modeling estimated parameters for p11 are inverted to compare with true parameters for p12.
+  gamma_intercept: Estimated = -2.4181, True = -2.0
+  gamma_task:      Estimated = 0.9991, True = 0.5
+  gamma_goal:      Estimated = 1.0127, True = 0.5
+  gamma_bond:      Estimated = 0.9906, True = 0.5
+
+--- Estimated State-Space Parameters ---
+
+-- Estimated b0 (3-factor) --
+  [ 0.02  -0.019  0.023]
+-- True b0 (3-factor) --
+  [0. 0. 0.]
+
+-- Estimated b0 (1-factor) --
+  [0.471]
+-- True b0 (1-factor) --
+  [0.39]
+
+-- Estimated B1 (3-Factor) --
+  [ 0.012 -0.004 -0.001]
+  [ 0.002  0.010 -0.010]
+  [-0.013 -0.004  0.008]
+
+-- Estimated B1 (1-Factor) --
+  [[0.005]]
+
+-- Estimated Q diag --
+  [0.409 0.495 0.707 0.097]
+
+-- Estimated R diag (State 1) --
+  [0.552 0.419 0.522 0.567 0.467 0.427 0.401 0.586 0.508]
+-- Estimated R diag (State 2) --
+  [0.481 0.51  0.511 0.5   0.494 0.503 0.465 0.469 0.513]
+
+-- Estimated Lambda free (State 1) --
+  [1.349 0.841 1.074 0.916 1.14  0.598]
+
+-- Estimated Lambda free (State 2) --
+  [1.16  0.894 1.031 1.162 0.958 1.016 1.361 0.796]
+
+--- 6. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT_2.0\frs_results_run_15\frs_aggregate_plot_IMPLEMENT 2.0.png'
+Generating 8 files for individual-level plots...
+Individual-level plots saved.

@@ -1,7 +1,0 @@
-
---- 1. Configuring DGP Parameters based on Flückiger et al. (2021) ---
-Set N = 57 participants and Nt = 15 sessions.
-
---- 2. Generating Simulation Data ---
-Removing existing data file 'data\IMPLEMENT\dgp_data_run_20\simulation_data_IMPLEMENT.pt' to generate new data...
-Generating new simulation data...

@@ -1,0 +1,41 @@
+--- 0. Bayesian Stacking Model Setup ---
+Using device: cpu (explicitly set for fair comparison)
+Running in 'IMPLEMENT' mode for realization #13.
+All output files will be saved to the 'results\IMPLEMENT\bps_results_run_13/' directory.
+
+--- 1. Loading Data and Pre-trained Models ---
+All necessary files loaded successfully.
+
+--- 2. Pre-calculating inputs for Bayesian Stacking model ---
+Pre-calculation complete.
+
+--- 3. Training Bayesian Stacking Model with MCMC ---
+Loading pre-computed Bayesian Stacking MCMC results from 'results\IMPLEMENT\bps_results_run_13\bps_mcmc_results_IMPLEMENT.pt'...
+
+--- 4. Evaluating Final Bayesian Stacking Model (using full posterior) ---
+  -> Calculating evaluation metrics using the full posterior distribution...
+  -> Calculating posterior mode of state probabilities using KDE...
+
+--- Bayesian Stacking Model Performance Summary ---
+====================================================================================================
+Metric                         | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood           | -9711.08 (Averaged over MCMC samples)
+Y Prediction RMSE (Median)     | 0.9168
+Y Prediction RMSE (Mode)       | 0.9169
+State Detection Sensitivity    | 0.7064 (Correctly identifying State 2)
+State Detection Specificity    | 0.8913 (Correctly identifying State 1)
+Training Duration (s)          | 61.36
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters (using Posterior Median) ---
+  gamma_intercept: Estimated = -2.7532, True = -2.0
+  gamma_task:      Estimated = 0.6065, True = 0.5
+  gamma_goal:      Estimated = 0.5760, True = 0.5
+  gamma_bond:      Estimated = 0.5483, True = 0.5
+
+--- 5. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT\bps_results_run_13\bps_aggregate_plot_IMPLEMENT.png'
+Generating 6 files for individual-level plots with uncertainty bands...
+Individual-level plots saved.
+\Bayesian Stacking analysis complete. Log saved to 'results\IMPLEMENT\bps_results_run_13\bps_log_IMPLEMENT_run_13.txt'

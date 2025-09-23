@@ -1,0 +1,77 @@
+Using device: cpu (explicitly set for fair comparison)
+Running in 'IMPLEMENT' mode with realization #8.
+All output files will be saved to the 'results\IMPLEMENT\frs_results_run_8/' directory.
+
+--- 1. Loading Data and Pre-trained Baseline Models ---
+Defined true transition parameters locally.
+All necessary files loaded successfully.
+
+--- 2. Defining Regime-Switching Kalman Filter (FRS) Model ---
+    -> Defining initial parameters for FRS based on DGP true values + noise (to mirror var.py's initialization)...
+
+--- 3. Training FRS Model ---
+    -> Initializing state-space params IDENTICALLY to VAR model...
+
+Early stopping triggered.
+FRS model training finished. Duration: 679.12s
+FRS model results saved to 'results\IMPLEMENT\frs_results_run_8\frs_model_results_IMPLEMENT.pt'.
+
+--- 4. Evaluating Final FRS Model ---
+    -> Initializing state-space params IDENTICALLY to VAR model...
+  -> Calculating uncertainty intervals from eta's covariance...
+
+--- FRS Model Performance Summary ---
+====================================================================================================
+Metric                    | Value
+----------------------------------------------------------------------------------------------------
+Final Log-Likelihood      | -9368.89
+Y Prediction RMSE         | 0.6559
+State Detection Sensitivity | 0.9026 (Correctly identifying State 2)
+State Detection Specificity | 0.9567 (Correctly identifying State 1)
+Training Duration (s)     | 679.12
+====================================================================================================
+
+--- Estimated vs. True Transition Parameters ---
+NOTE: FRS estimated parameters for p11 are inverted to compare with true parameters for p12.
+  gamma_intercept: Estimated = -2.7491, True = -2.0
+  gamma_task:      Estimated = 1.4747, True = 0.5
+  gamma_goal:      Estimated = 1.5819, True = 0.5
+  gamma_bond:      Estimated = 1.5769, True = 0.5
+
+--- Estimated State-Space Parameters ---
+
+-- Estimated b0 (Intercept) --
+  [ 0.022  0.043 -0.03   0.597]
+-- True b0 (Intercept) --
+  [0.   0.   0.   0.37]
+
+-- Estimated B1 (3-Factor) --
+  [ 0.007 -0.003 -0.000]
+  [-0.006  0.002  0.001]
+  [ 0.007  0.009  0.006]
+
+-- Estimated B1 (1-Factor) --
+  [[0.218]]
+
+-- Estimated Q diag --
+  [0.524 0.4   0.275 0.125]
+
+-- Estimated R diag (State 1) --
+  [0.48  0.514 0.535 0.557 0.561 0.399 0.512 0.465 0.469]
+-- Estimated R diag (State 2) --
+  [0.485 0.55  0.434 0.524 0.518 0.49  0.496 0.453 0.511]
+-- True R diag --
+  [0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5]
+
+-- Estimated Lambda free (State 1) --
+  [1.175 0.809 1.059 1.115 1.408 0.764]
+
+-- Estimated Lambda free (State 2) --
+  [1.065 0.717 0.928 1.056 0.89  0.869 1.196 0.726]
+
+--- 6. Generating Visualizations ---
+Aggregate plot saved to 'results\IMPLEMENT\frs_results_run_8\frs_aggregate_plot_IMPLEMENT.png'
+Generating 6 files for individual-level plots with uncertainty bands...
+Individual-level plots saved.
+
+FRS analysis complete. Log saved to 'results\IMPLEMENT\frs_results_run_8\frs_log_IMPLEMENT_run_8.txt'
